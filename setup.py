@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-      name='labelboost',
+      name='labelbase',
       version='0.0.1',
       author='Labelbox',
       author_email='raphael@labelbox.com',
@@ -14,6 +14,6 @@ setuptools.setup(
       long_description=long_description,
       long_description_content_type="text/markdown",
       install_requires=["labelbox", "packaging"],
-      keywords=["labelbox", "labelboost"],
+      keywords=["labelbox", "labelbase"],
       extras_require={'dev': ['pylint']}
 )
