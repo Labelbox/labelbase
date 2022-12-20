@@ -262,7 +262,7 @@ class Client:
         else:
             return ontology_schema_to_name_path        
  
-    def batch_upload_annotations(self, project:labelboxProject, annotations:list, import_name:str=str(uuid.uuid4()), how:str="MAL", batch_size:int=20000):
+    def batch_upload_annotations(self, project:labelboxProject, annotations:list, import_name:str=str(uuid.uuid4()), how:str="MAL", batch_size:int=20000, verbose=False):
         """ Batch imports labels given a batch size via MAL or LabelImport
         Args:
             project         :   Required (labelbox.schema.project.Project) - Labelbox Project object
@@ -270,6 +270,7 @@ class Client:
             import_name     :   Optional (str) - Name to give to import jobs - will have a batch number suffix
             how             :   Optional (str) - Upload method - options are "mal" and "labelimport" - defaults to "labelimport"
             batch_size      :   Optional (int) - Desired batch upload size - this size is determined by annotation counts, not by data row count
+            verbose         :   Optional (bool) - If True, prints information about code execution
         Returns: 
             A list of errors if there is one, True if upload failed, False if successful
         """
@@ -310,4 +311,4 @@ class Client:
                 if verbose:
                     print(f'There were errors with this upload - see the return value for more details')
                 return errors
-        return []]   
+        return []
