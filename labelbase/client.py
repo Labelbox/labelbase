@@ -47,7 +47,7 @@ class Client:
             print(f"Valid metadata_index")
         return True
       
-    def sync_metadata_fields(self, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index={}, verbose:bool=False):
+    def sync_metadata_fields(self, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False):
         """ Ensures Labelbox's Metadata Ontology and your input have all necessary metadata fields / columns given a metadata_index
         Args:
             table                       :   Required - Input user table
