@@ -42,7 +42,7 @@ class Client:
             if metadata_index[metadata_field_name] not in ["enum", "string", "datetime", "number"]:
                 if verbose:
                     print(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
-                    return False
+                return False
         if verbose:
             print(f"Valid metadata_index")
         return True
@@ -68,7 +68,7 @@ class Client:
         if not check:
             return False
         # If your table doesn't have columns for all your metadata_field_names, make columns for them
-        if metadata_index and table:
+        if metadata_index:
             column_names = get_columns_function(table)
             for metadata_field_name in metadata_index.keys():
                 if metadata_field_name not in column_names:
