@@ -183,10 +183,7 @@ class Client:
             errors = task.errors
             if errors:
                 if verbose: 
-                    if type(errors) == str:
-                        print(f'Data Row Creation Error: {errors}')
-                    else:
-                        print(f'Data Row Creation Error: {errors[0]}')
+                    print(f'Data Row Creation Error: {errors}')
                 return errors
         return []
 
