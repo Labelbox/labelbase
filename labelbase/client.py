@@ -310,6 +310,7 @@ class Client:
                 return errors
         return []
 
+     ## Update for datetime later
     def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
         """ Processes inbound values to ensure only valid values are added as metadata to Labelbox given the metadata type. Returns None if invalid or None
         Args:
@@ -327,7 +328,7 @@ class Client:
             return_value = None
         # By metadata type
         if metadata_type == "enum": # For enums, it must be a schema ID - if we can't match it, we have to skip it
-            name_key = f"{metadata_field_name}{divider}{str(row[metadata_field_name])}"
+            name_key = f"{parent_name}{divider}{str(row[metadata_field_name])}"
             if name_key in metadata_name_key_to_schema.keys():
                 return_value = metadata_name_key_to_schema[name_key]
             else:
