@@ -309,3 +309,37 @@ class Client:
                     print(f'There were errors with this upload - see the return value for more details')
                 return errors
         return []
+
+    def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
+        """ Processes inbound values to ensure only valid values are added as metadata to Labelbox given the metadata type. Returns None if invalid or None
+        Args:
+            metadata_value              :   Required (any) - Value to-be-screeened and inserted as a proper metadata value to-be-uploaded to Labelbox
+            metadata_type               :   Required (str) - Either "string", "datetime", "enum", or "number"
+            parent_name                 :   Required (str) - Parent metadata field name
+            metadata_name_key_to_schema :   Required (dict) - Dictionary where {key=metadata_field_name_key : value=metadata_schema_id}
+            divider                     :   Required (str) - String delimiter for all name keys generated
+        Returns:
+            The proper data type given the metadata type for the input value. None if the value is invalud - should be skipped
+        """
+        if not metadata_value: # Catch empty values
+            return_value = None
+        if str(metadata_value) == "nan": # Catch NaN values
+            return_value = None
+        # By metadata type
+        if metadata_type == "enum": # For enums, it must be a schema ID - if we can't match it, we have to skip it
+            name_key = f"{metadata_field_name}{divider}{str(row[metadata_field_name])}"
+            if name_key in metadata_name_key_to_schema.keys():
+                return_value = metadata_name_key_to_schema[name_key]
+            else:
+                return_value = None                  
+        elif metadata_type == "number": # For numbers, its ints as strings
+            try:
+                return_value = str(int(row_value))
+            except:
+                return_value = None                  
+        elif metadata_type == "string": 
+            return_value = str(row_value)
+        else: ## Update for datetime later
+            return_value = row_value      
+        return return_value    
+    
