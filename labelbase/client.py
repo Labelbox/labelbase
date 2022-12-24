@@ -341,6 +341,6 @@ class Client:
         elif metadata_type == "string": 
             return_value = str(metadata_value)
         else: ## Update for datetime later
-            return_value = row_value      
+            return_value = metadata_value      
         return return_value    
     
