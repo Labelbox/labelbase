@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
       name='labelbase',
-      version='0.0.27',
+      version='0.0.28',
       author='Labelbox',
       author_email='raphael@labelbox.com',
       description='Labelbox Helper Library',      
