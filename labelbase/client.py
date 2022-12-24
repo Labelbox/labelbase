@@ -311,7 +311,7 @@ class Client:
         return []
 
      ## Update for datetime later
-    def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
+    def process_metadata_value(self, metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
         """ Processes inbound values to ensure only valid values are added as metadata to Labelbox given the metadata type. Returns None if invalid or None
         Args:
             metadata_value              :   Required (any) - Value to-be-screeened and inserted as a proper metadata value to-be-uploaded to Labelbox
