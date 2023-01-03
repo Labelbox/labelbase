@@ -10,7 +10,7 @@ def upload_local_file(lb_client:labelboxClient, file_path:str):
     Returns:
         URL corresponding to the uploaded asset
     """ 
-    return file_path, lb_client.upload_file(file_path)    
+    return lb_client.upload_file(file_path)    
 
 def check_global_keys(client:labelboxClient, global_keys:list):
     """ Checks if data rows exist for a set of global keys
