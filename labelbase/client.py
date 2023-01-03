@@ -1,4 +1,5 @@
 from labelbox import Client as labelboxClient
+from labelbase import connector
 from labelbox.schema.dataset import Dataset as labelboxDataset
 from labelbox.schema.project import Project as labelboxProject
 from labelbox.schema.data_row_metadata import DataRowMetadataKind
@@ -121,26 +122,8 @@ class Client:
         Returns:
             Upload errors
         """
-        def check_global_keys(client:labelboxClient, global_keys:list):
-            """ Checks if data rows exist for a set of global keys
-            Args:
-                client                  : Required (labelbox.client.Client) : Labelbox Client object
-                global_keys             : Required (list(str)) : List of global key strings
-            Returns:
-                True if global keys are available, False if not
-            """
-            query_keys = [str(x) for x in global_keys]
-            # Create a query job to get data row IDs given global keys
-            query_str_1 = """query get_datarow_with_global_key($global_keys:[ID!]!){dataRowsForGlobalKeys(where:{ids:$global_keys}){jobId}}"""
-            query_str_2 = """query get_job_result($job_id:ID!){dataRowsForGlobalKeysResult(jobId:{id:$job_id}){data{
-                            accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""        
-            res = None
-            while not res:
-                query_job_id = client.execute(query_str_1, {"global_keys":global_keys})['dataRowsForGlobalKeys']['jobId']
-                res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']
-            return res
         global_keys_list = list(global_key_to_upload_dict.keys())
-        payload = check_global_keys(self.lb_client, global_keys_list)
+        payload = connector.check_global_keys(self.lb_client, global_keys_list)
         if payload:
             loop_counter = 0
             while len(payload['notFoundGlobalKeys']) != len(global_keys_list):
@@ -168,7 +151,7 @@ class Client:
                                 new_upload_dict['global_key'] = new_global_key # Put new global key values in this data_row_upload_dict
                                 global_key_to_upload_dict[new_global_key] = new_upload_dict # Add your new data_row_upload_dict to your upload_dict
                     global_keys_list = list(global_key_to_upload_dict.keys())
-                payload = check_global_keys(self.lb_client, global_keys_list)
+                payload = connector.check_global_keys(self.lb_client, global_keys_list)
         upload_list = list(global_key_to_upload_dict.values())
         if verbose:
             print(f'Beginning data row upload: uploading {len(upload_list)} data rows')
@@ -178,7 +161,7 @@ class Client:
             batch = upload_list[i:] if i + batch_size >= len(upload_list) else upload_list[i:i+batch_size]
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
-            task = dataset.create_data_rows(batch)
+            task = dataset.create_data_rows(upload_batch)
             task.wait_till_done()
             errors = task.errors
             if errors:
