@@ -172,7 +172,7 @@ class Client:
             batch = upload_list[i:] if i + batch_size >= len(upload_list) else upload_list[i:i+batch_size]
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
-            task = dataset.create_data_rows(upload_batch)
+            task = dataset.create_data_rows(batch)
             task.wait_till_done()
             errors = task.errors
             if errors:
