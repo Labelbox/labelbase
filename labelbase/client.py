@@ -3,6 +3,7 @@ from labelbase import connector
 from labelbox.schema.dataset import Dataset as labelboxDataset
 from labelbox.schema.project import Project as labelboxProject
 from labelbox.schema.data_row_metadata import DataRowMetadataKind
+from google.api_core import retry
 import math
 import uuid
 
@@ -108,7 +109,18 @@ class Client:
             else:
                 metadata_schema_to_name_key[lb_metadata_dict[metadata_field_name_key].uid] = str(metadata_field_name_key)
         return_value = metadata_schema_to_name_key if not invert else {v:k for k,v in metadata_schema_to_name_key.items()}
-        return return_value
+        return return_value  
+
+    @retry.Retry(predicate=retry.if_exception_type(Exception), deadline=240.)
+    def upload_local_file(lb_client:labelboxClient, file_path:str):
+        """ Wraps client.upload_file() in retry logic
+        Args:
+            lb_client   :   Required (labelbox.client.Cient) - Labelbox Client object
+            file_path   :   Required (str) - Data row file path
+        Returns:
+            URL corresponding to the uploaded asset
+        """ 
+        return lb_client.upload_file(file_path)
 
     def batch_create_data_rows(self, dataset:labelboxDataset, global_key_to_upload_dict:dict, skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
         """ Uploads data rows, skipping duplocate global keys or auto-generating new unique ones
