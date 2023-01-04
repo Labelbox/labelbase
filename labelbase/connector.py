@@ -34,11 +34,11 @@ def create_dataset_with_integration(client:labelboxClient, name:str, integration
         if iam_integration.name == integration: # If the names match, reassign the iam_integration input value
             integration = iam_integration
             if verbose:
-                print(f"Creating a Labelbox dataset with name {name} and delegated access integration name {integration.name}")
+                print(f'Creating a Labelbox dataset with name "{name}" and delegated access integration name {integration.name}')
             break
     # If none match, use the default setting
     if (type(integration)==str) and (verbose==True):
-        print(f"Creating a Labelbox dataset with name {name} and the default delegated access integration setting")
+        print(f'Creating a Labelbox dataset with name "{name}" and the default delegated access integration setting')
     # Create the Labelbox dataset 
     dataset = client.create_dataset(name=name, iam_integration=integration) 
     return dataset   
