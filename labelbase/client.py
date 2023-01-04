@@ -190,7 +190,7 @@ class Client:
         """ Gets or creates a Labelbox dataset given a dataset name and an integration name
         Args:
             dataset_name        :   Required (str) - Desired dataset name
-            integration_name    :   Optional (str) - Existing Labelbox delegated access setting for new dataset
+            dataset_integration :   Optional (str) - Existing Labelbox delegated access setting for new dataset
             verbose             :   Optional (bool) - If True, prints information about code execution
         Returns:
             labelbox.schema.dataset.Dataset object
@@ -200,7 +200,7 @@ class Client:
             if verbose:
                 print(f'Using existing dataset with ID {dataset.uid}')
         except:
-            dataset = connector.create_dataset_with_integration(dataset_name=dataset_name, dataset_integration=dataset_integration)
+            dataset = connector.create_dataset_with_integration(client=self.lb_client, dataset_name=dataset_name, dataset_integration=dataset_integration, verbose=verbose)
             if verbose:
                 print(f'Created a new dataset with ID {dataset.uid}') 
         return dataset      
