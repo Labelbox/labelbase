@@ -186,21 +186,21 @@ class Client:
             print(f'Upload complete')
         return []
     
-    def get_or_create_dataset(self, dataset_name:str, dataset_integration:str="DEFAULT", verbose:bool=False):
+    def get_or_create_dataset(self, name:str, integration:str="DEFAULT", verbose:bool=False):
         """ Gets or creates a Labelbox dataset given a dataset name and an integration name
         Args:
-            dataset_name        :   Required (str) - Desired dataset name
-            dataset_integration :   Optional (str) - Existing Labelbox delegated access setting for new dataset
+            name                :   Required (str) - Desired dataset name
+            integration         :   Optional (str) - Existing Labelbox delegated access setting for new dataset
             verbose             :   Optional (bool) - If True, prints information about code execution
         Returns:
             labelbox.schema.dataset.Dataset object
         """
         try: 
-            dataset = next(self.lb_client.get_datasets(where=(labelboxDataset.name==dataset_name)))
+            dataset = next(self.lb_client.get_datasets(where=(labelboxDataset.name==name)))
             if verbose:
                 print(f'Using existing dataset with ID {dataset.uid}')
         except:
-            dataset = connector.create_dataset_with_integration(client=self.lb_client, dataset_name=dataset_name, dataset_integration=dataset_integration, verbose=verbose)
+            dataset = connector.create_dataset_with_integration(client=self.lb_client, name=name, integration=integration, verbose=verbose)
             if verbose:
                 print(f'Created a new dataset with ID {dataset.uid}') 
         return dataset      
