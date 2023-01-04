@@ -177,8 +177,13 @@ class Client:
             errors = task.errors
             if errors:
                 if verbose: 
-                    print(f'Data Row Creation Error: {errors}')
+                    print(f'Error: upload batch number {batch_number} unsuccessful')
                 return errors
+            else:
+                if verbose: 
+                    print(f'Success: upload batch number {batch_number} complete')  
+        if verbose:
+            print(f'Upload complete')
         return []
 
     def create_dataset_with_integration(self, dataset_name:str, integration_name="DEFAULT", verbose=False):
@@ -300,8 +305,11 @@ class Client:
             errors = import_request.errors
             if errors:
                 if verbose:
-                    print(f'There were errors with this upload - see the return value for more details')
+                    print(f'Error: upload batch number {batch_number} unsuccessful')
                 return errors
+            else:
+                if verbose:
+                    print(f'Success: upload batch number {batch_number} complete')               
         return []
 
      ## Update for datetime later
