@@ -185,29 +185,25 @@ class Client:
         if verbose:
             print(f'Upload complete')
         return []
-
-    def create_dataset_with_integration(self, dataset_name:str, integration_name="DEFAULT", verbose=False):
-        """ Creates a Labelbox dataset given a desired dataset name and a desired delegated access integration name
+    
+    def get_or_create_dataset(self, dataset_name:str, dataset_integration:str="DEFAULT", verbose:bool=False):
+        """ Gets or creates a Labelbox dataset given a dataset name and an integration name
         Args:
-            client              :   Required (labelbox.client.Client) : Labelbox Client object with an api key
-            dataset_name        :   Required (str) : Desired dataset name
-            integration_name    :   Optional (str) : Existing Labelbox delegated access setting for new dataset
+            dataset_name        :   Required (str) - Desired dataset name
+            integration_name    :   Optional (str) - Existing Labelbox delegated access setting for new dataset
             verbose             :   Optional (bool) - If True, prints information about code execution
         Returns:
-            labelbox.shema.dataset.Dataset object
+            labelbox.schema.dataset.Dataset object
         """
-        for iam_integration in self.lb_client.get_organization().get_iam_integrations(): # Gets all iam_integration DB objects
-            if iam_integration.name == integration_name: # If the names match, reassign the iam_integration input value
-                integration_name = iam_integration
-                if verbose:
-                    print(f"Creating a Labelbox dataset with name {dataset_name} and delegated access name {integration_name.name}")
-                break
-        if (type(integration_name) == str) and (verbose):
-            print(f"Creating a Labelbox dataset with name {dataset_name} and the default delegated access setting")
-        lb_dataset = self.lb_client.create_dataset(name=dataset_name, iam_integration=integration_name) # Create the Labelbox dataset
-        if verbose:
-            print(f"Dataset ID: {lb_dataset.uid}")    
-        return lb_dataset         
+        try: 
+            dataset = next(self.lb_client.get_datasets(where=(labelboxDataset.name==dataset_name)))
+            if verbose:
+                print(f'Using existing dataset with ID {dataset.uid}')
+        except:
+            dataset = connector.create_dataset_with_integration(dataset_name=dataset_name, dataset_integration=dataset_integration)
+            if verbose:
+                print(f'Created a new dataset with ID {dataset.uid}') 
+        return dataset      
 
     def get_ontology_schema_to_name_path(self, ontology_normalized:dict, divider:str="///", invert:bool=False):
         """ Recursively iterates through an ontology to create a dictionary where {key=schema_id : value=name_path}
