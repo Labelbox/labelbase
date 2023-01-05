@@ -35,7 +35,7 @@ class Client:
             Updated table if successful, False if not
         """
         # Get your metadata ontology, grab all the metadata field names
-        lb_mdo, lb_metadata_names = connector.refresh_metadata_ontology()
+        lb_mdo, lb_metadata_names = connector.refresh_metadata_ontology(self.lb_client)
         # Convert your meatdata_index values from strings into labelbox.schema.data_row_metadata.DataRowMetadataKind types
         conversion = {"enum" : DataRowMetadataKind.enum, "string" : DataRowMetadataKind.string, "datetime" : DataRowMetadataKind.datetime, "number" : DataRowMetadataKind.number}
         # Check to make sure the value in your metadata index is one of the accepted values        
@@ -55,7 +55,7 @@ class Client:
             if metadata_field_name not in lb_metadata_names:
                 enum_options = get_unique_values_function(table, metadata_field_name) if metadata_type == "enum" else []
                 lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
-                lb_mdo, lb_metadata_names = connector.refresh_metadata_ontology()
+                lb_mdo, lb_metadata_names = connector.refresh_metadata_ontology(self.lb_client)
         if 'lb_integration_source' not in lb_metadata_names:
             lb_mdo.create_schema(name='lb_integration_source', kind=conversion["string"])
         return table      
