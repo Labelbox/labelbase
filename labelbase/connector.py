@@ -22,7 +22,7 @@ def check_global_keys(client:labelboxClient, global_keys:list):
 def create_dataset_with_integration(client:labelboxClient, name:str, integration:str="DEFAULT", verbose:bool=False):
     """ Creates a Labelbox dataset given a desired dataset name and a desired delegated access integration name
     Args:
-        client              :   Required (labelbox.client.Client) : Labelbox Client object with an api key
+        client              :   Required (labelbox.client.Client) : Labelbox Client object
         name                :   Required (str) - Desired dataset name
         integration         :   Optional (str) - Existing Labelbox delegated access setting for new dataset
         verbose             :   Optional (bool) - If True, prints information about code execution
@@ -42,3 +42,36 @@ def create_dataset_with_integration(client:labelboxClient, name:str, integration
     # Create the Labelbox dataset 
     dataset = client.create_dataset(name=name, iam_integration=integration) 
     return dataset   
+
+def refresh_metadata_ontology(client:labelboxClient):
+    """ Refreshes a Labelbox Metadata Ontology
+    Args:
+        client              :   Required (labelbox.client.Client) : Labelbox Client object    
+    Returns:
+        lb_mdo              :   labelbox.schema.data_row_metadata.DataRowMetadataOntology
+        lb_metadata_names   :   List of metadata field names from a Labelbox metadata ontology
+    """
+    lb_mdo = lb_client.lb_client.get_data_row_metadata_ontology()
+    lb_metadata_names = [field['name'] for field in lb_mdo._get_ontology()]
+    return lb_mdo, lb_metadata_names
+
+def enforce_metadata_index(metadata_index:dict, verbose:bool=False):
+    """ Ensure your metadata_index is in the proper format. Returns True if it is, and False if it is not
+    Args:
+        metadata_index      :   Required (dict) - Dictionary where {key=metadata_field_name : value=metadata_type}
+        verbose             :   Required (bool) - If True, prints information about code execution
+    Returns:
+        True if the metadata_index is valid, False if not
+    """
+    if metadata_index:
+        for metadata_field_name in metadata_index:
+            if metadata_index[metadata_field_name] not in ["enum", "string", "datetime", "number"]:
+                if verbose:
+                    print(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
+                return False
+        if verbose:
+            print(f"Valid metadata_index")
+    else:
+        if verbose:
+            print(f"No metadata_index provided")
+    return True
