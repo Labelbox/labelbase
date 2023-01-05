@@ -21,33 +21,6 @@ class Client:
     """
     def __init__(self, lb_api_key=None, lb_endpoint='https://api.labelbox.com/graphql', lb_enable_experimental=False, lb_app_url="https://app.labelbox.com"):  
         self.lb_client = labelboxClient(lb_api_key, endpoint=lb_endpoint, enable_experimental=lb_enable_experimental, app_url=lb_app_url)
-    
-    def refresh_metadata_ontology(self):
-        """ Refreshes a Labelbox Metadata Ontology
-        Returns 
-            lb_mdo              :   labelbox.schema.data_row_metadata.DataRowMetadataOntology
-            lb_metadata_names   :   List of metadata field names from a Labelbox metadata ontology
-        """
-        lb_mdo = self.lb_client.get_data_row_metadata_ontology()
-        lb_metadata_names = [field['name'] for field in lb_mdo._get_ontology()]
-        return lb_mdo, lb_metadata_names
-    
-    def enforce_metadata_index(self, metadata_index:dict, verbose:bool=False):
-        """ Ensure your metadata_index is in the proper format. Returns True if it is, and False if it is not
-        Args:
-            metadata_index      :   Required (dict) - Dictionary where {key=metadata_field_name : value=metadata_type}
-            verbose             :   Required (bool) - If True, prints information about code execution
-        Returns:
-            True if the metadata_index is valid, False if not
-        """
-        for metadata_field_name in metadata_index:
-            if metadata_index[metadata_field_name] not in ["enum", "string", "datetime", "number"]:
-                if verbose:
-                    print(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
-                return False
-        if verbose:
-            print(f"Valid metadata_index")
-        return True
       
     def sync_metadata_fields(self, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False):
         """ Ensures Labelbox's Metadata Ontology and your input have all necessary metadata fields / columns given a metadata_index
@@ -62,11 +35,11 @@ class Client:
             Updated table if successful, False if not
         """
         # Get your metadata ontology, grab all the metadata field names
-        lb_mdo, lb_metadata_names = self.refresh_metadata_ontology()
+        lb_mdo, lb_metadata_names = connector.refresh_metadata_ontology()
         # Convert your meatdata_index values from strings into labelbox.schema.data_row_metadata.DataRowMetadataKind types
         conversion = {"enum" : DataRowMetadataKind.enum, "string" : DataRowMetadataKind.string, "datetime" : DataRowMetadataKind.datetime, "number" : DataRowMetadataKind.number}
         # Check to make sure the value in your metadata index is one of the accepted values        
-        check = self.enforce_metadata_index(metadata_index, verbose)
+        check = connector.enforce_metadata_index(metadata_index, verbose)
         if not check:
             return False
         # If your table doesn't have columns for all your metadata_field_names, make columns for them
@@ -82,9 +55,9 @@ class Client:
             if metadata_field_name not in lb_metadata_names:
                 enum_options = get_unique_values_function(table, metadata_field_name) if metadata_type == "enum" else []
                 lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
-                lb_mdo, lb_metadata_names = self.refresh_metadata_ontology()
+                lb_mdo, lb_metadata_names = connector.refresh_metadata_ontology()
         if 'lb_integration_source' not in lb_metadata_names:
-            lb_mdo.create_schema(name='lb_integration_source', kind=conversion["string"])      
+            lb_mdo.create_schema(name='lb_integration_source', kind=conversion["string"])
         return table      
 
     def get_metadata_schema_to_name_key(self, lb_mdo=False, divider="///", invert=False):
@@ -308,7 +281,7 @@ class Client:
                     print(f'Success: upload batch number {batch_number} complete')               
         return []
 
-     ## Update for datetime later
+    ## Update for datetime later
     def process_metadata_value(self, metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
         """ Processes inbound values to ensure only valid values are added as metadata to Labelbox given the metadata type. Returns None if invalid or None
         Args:
