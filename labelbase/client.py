@@ -116,16 +116,19 @@ class Client:
                     if verbose:
                         print(f"Warning: Global keys in this upload are in use by deleted data rows, clearing all global keys from deleted data rows")
                     self.lb_client.clear_global_keys(payload['deletedDataRowGlobalKeys'])
+                    payload = connector.check_global_keys(self.lb_client, global_keys_list)
+                    continue
                 # If global keys are taken by existing data rows, either skip them on upload or update the global key to have a "_{loop_counter}" suffix
-                elif payload['fetchedDataRows']:
+                if payload['fetchedDataRows']:
                     loop_counter += 1                    
                     if verbose and skip_duplicates:
                         print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected")         
                     elif verbose:
-                        print(f"Warning: Global keys in this upload are in use by active data rows, adding the following suffix to affected data rows: '{divider}{loop_counter}'")   
+                        print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")   
                     for i in range(0, len(payload['fetchedDataRows'])):
                         current_global_key = str(global_keys_list[i])
-                        new_global_key = f"{current_global_key[:-3]}{divider}{loop_counter}" if current_global_key[-3:-1] == divider else f"{current_global_key}{divider}{loop_counter}"
+                        # Add (or replace) a suffix to your working global_key
+                        new_global_key = f"{current_global_key[:-len(divider)]}{divider}{loop_counter}" if current_global_key[-len(divider):-1] == divider else f"{current_global_key}{divider}{loop_counter}"
                         if payload['fetchedDataRows'][i] != "":                            
                             if skip_duplicates:
                                 del global_key_to_upload_dict[current_global_key] # Delete this data_row_upload_dict from your upload_dict
@@ -133,9 +136,9 @@ class Client:
                                 new_upload_dict = global_key_to_upload_dict[current_global_key] # Grab the existing data_row_upload_dict
                                 del global_key_to_upload_dict[current_global_key] # Delete this data_row_upload_dict from your upload_dict
                                 new_upload_dict['global_key'] = new_global_key # Put new global key values in this data_row_upload_dict
-                                global_key_to_upload_dict[new_global_key] = new_upload_dict # Add your new data_row_upload_dict to your upload_dict
+                                global_key_to_upload_dict[new_global_key] = new_upload_dict # Add your new data_row_upload_dict to your upload_dict                               
                     global_keys_list = list(global_key_to_upload_dict.keys())
-                payload = connector.check_global_keys(self.lb_client, global_keys_list)
+                    payload = connector.check_global_keys(self.lb_client, global_keys_list) 
         upload_list = list(global_key_to_upload_dict.values())
         if verbose:
             print(f'Beginning data row upload: uploading {len(upload_list)} data rows')
