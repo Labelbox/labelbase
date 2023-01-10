@@ -41,11 +41,12 @@ class Client:
         # Check to make sure the value in your metadata index is one of the accepted values        
         connector.enforce_metadata_index(metadata_index, verbose)
         # If your table doesn't have columns for all your metadata_field_names, make columns for them
-        if metadata_index:
-            column_names = get_columns_function(table)
-            for metadata_field_name in metadata_index.keys():
-                if metadata_field_name not in column_names:
-                    table = add_column_function(table, column_name=metadata_field_name, default_value=None)
+        if type(table) != bool:
+            if metadata_index:
+                column_names = get_columns_function(table)
+                for metadata_field_name in metadata_index.keys():
+                    if metadata_field_name not in column_names:
+                        table = add_column_function(table, column_name=metadata_field_name, default_value=None)
         # If Labelbox doesn't have metadata for all your metadata_field_names, make Labelbox metadata fields
         for metadata_field_name in metadata_index.keys():
             metadata_type = metadata_index[metadata_field_name]
