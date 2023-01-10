@@ -9,7 +9,7 @@ import uuid
 
 
 class Client:
-    """ A Labelboost Client, containing a Labelbox Client, that can perform a plethora of helper functions
+    """ A Labelbase Client, containing a Labelbox Client, that can perform a plethora of helper functions
     Args:
         lb_api_key                  :   Required (str) - Labelbox API Key
         lb_endpoint                 :   Optinoal (bool) - Labelbox GraphQL endpoint
