@@ -39,9 +39,7 @@ class Client:
         # Convert your meatdata_index values from strings into labelbox.schema.data_row_metadata.DataRowMetadataKind types
         conversion = {"enum" : DataRowMetadataKind.enum, "string" : DataRowMetadataKind.string, "datetime" : DataRowMetadataKind.datetime, "number" : DataRowMetadataKind.number}
         # Check to make sure the value in your metadata index is one of the accepted values        
-        check = connector.enforce_metadata_index(metadata_index, verbose)
-        if not check:
-            return False
+        connector.enforce_metadata_index(metadata_index, verbose)
         # If your table doesn't have columns for all your metadata_field_names, make columns for them
         if metadata_index:
             column_names = get_columns_function(table)
