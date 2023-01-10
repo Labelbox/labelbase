@@ -66,12 +66,10 @@ def enforce_metadata_index(metadata_index:dict, verbose:bool=False):
     if metadata_index:
         for metadata_field_name in metadata_index:
             if metadata_index[metadata_field_name] not in ["enum", "string", "datetime", "number"]:
-                if verbose:
-                    print(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
-                return False
+                raise ValueError(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
         if verbose:
             print(f"Valid metadata_index")
     else:
         if verbose:
             print(f"No metadata_index provided")
-    return True
+    return
