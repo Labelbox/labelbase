@@ -6,6 +6,8 @@ from labelbox.schema.data_row_metadata import DataRowMetadataKind
 from google.api_core import retry
 import math
 import uuid
+from datetime import datetime
+from dateutil import parser
 
 
 class Client:
@@ -314,6 +316,11 @@ class Client:
         elif metadata_type == "string": 
             return_value = str(metadata_value)
         else: ## Update for datetime later
-            return_value = metadata_value      
+            if type(metadata_value) == str:
+                return_value = parser.parse(metadata_value).isoformat()
+            elif type(metadata_value) == datetime:
+                return_value = metadata_value.isoformat()
+            else:
+                return_value = None       
         return return_value    
     
