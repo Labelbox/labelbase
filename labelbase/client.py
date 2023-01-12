@@ -285,7 +285,6 @@ class Client:
                     print(f'Success: upload batch number {batch_number} complete')               
         return []
 
-    ## Update for datetime later
     def process_metadata_value(self, metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
         """ Processes inbound values to ensure only valid values are added as metadata to Labelbox given the metadata type. Returns None if invalid or None
         Args:
