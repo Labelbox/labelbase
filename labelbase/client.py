@@ -222,7 +222,7 @@ class Client:
                         name_path = node_name
                     feature_dict.update({node['featureSchemaId'] : name_path})
                     if next_layer:
-                        feature_dict = map_layer(feature_dict, next_layer, name_path. divider)
+                        feature_dict = map_layer(feature_dict, next_layer, name_path, divider)
             return feature_dict
         ontology_schema_to_name_path = map_layer(feature_dict={}, node_layer=ontology_normalized["tools"], divider=divider) if ontology_normalized["tools"] else {}
         if ontology_normalized["classifications"]:
