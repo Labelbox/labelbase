@@ -307,14 +307,14 @@ class Client:
                 return_value = metadata_name_key_to_schema[name_key]
             else:
                 return_value = None                  
-        elif metadata_type == "number": # For numbers, its ints as strings
+        elif metadata_type == "number": # For numbers, it's ints as strings
             try:
                 return_value = str(int(row_value))
             except:
                 return_value = None                  
         elif metadata_type == "string": 
             return_value = str(metadata_value)
-        else: ## Update for datetime later
+        else: # For datetime, it's an isoformat string
             if type(metadata_value) == str:
                 return_value = parser.parse(metadata_value).isoformat()
             elif type(metadata_value) == datetime:
