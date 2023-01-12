@@ -8,6 +8,7 @@ import math
 import uuid
 from datetime import datetime
 from dateutil import parser
+import pytz
 
 
 class Client:
@@ -316,9 +317,9 @@ class Client:
             return_value = str(metadata_value)
         else: # For datetime, it's an isoformat string
             if type(metadata_value) == str:
-                return_value = parser.parse(metadata_value).isoformat()
-            elif type(metadata_value) == datetime:
-                return_value = metadata_value.isoformat()
+                return_value = parser.parse(metadata_value).astimezone(pytz.utc)
+            elif type(metadata_value) == datetime.datetime:
+                return_value = metadata_value.astimezone(pytz.utc)
             else:
                 return_value = None       
         return return_value    
