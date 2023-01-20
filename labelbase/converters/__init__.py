@@ -1,2 +1,2 @@
-import labebase.converters.coco
-import labebase.converters.ontology
+import labelbase.converters.coco
+import labelbase.converters.ontology
