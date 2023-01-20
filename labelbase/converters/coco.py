@@ -223,19 +223,30 @@ def export_labels(project, verbose=True, divider="///"):
         print(f'Data Rows Converted into a COCO Dataset.')  
     annotations = []
     if verbose:                     
-        print(f'Converting Annotations into the COCO Format...\n')
+        print(f'Converting Annotations into the COCO Format...')
     ontology_schema_to_name_path = get_ontology_schema_to_name_path(project.ontology().normalized, detailed=True) 
     global_max_keypoints = 0
     futures = []
-    with ThreadPoolExecutor() as exc:
-        for label in tqdm(labels_list):
-            for annotation in label['Label']['objects']:
-                futures.append(exc.submit(_to_coco_annotation_converter, label['DataRow ID'], annotation, ontology_schema_to_name_path))
-        for f in as_completed(futures):
-            res = f.result()
-            if res[1] > global_max_keypoints:
-                global_max_keypoints = copy.deepcopy(res[1])
-            annotations.append(res[0])    
+    if verbose:
+        with ThreadPoolExecutor() as exc:
+            for label in tqdm(labels_list):
+                for annotation in label['Label']['objects']:
+                    futures.append(exc.submit(_to_coco_annotation_converter, label['DataRow ID'], annotation, ontology_schema_to_name_path))
+            for f in tqdm(as_completed(futures)):
+                res = f.result()
+                if res[1] > global_max_keypoints:
+                    global_max_keypoints = copy.deepcopy(res[1])
+                annotations.append(res[0])    
+    else:
+        with ThreadPoolExecutor() as exc:
+            for label in labels_list:
+                for annotation in label['Label']['objects']:
+                    futures.append(exc.submit(_to_coco_annotation_converter, label['DataRow ID'], annotation, ontology_schema_to_name_path))
+            for f in as_completed(futures):
+                res = f.result()
+                if res[1] > global_max_keypoints:
+                    global_max_keypoints = copy.deepcopy(res[1])
+                annotations.append(res[0])          
     if verbose:                     
         print(f'Annotation Conversion Complete. Converted {len(annotations)} annotations into the COCO Format.')                        
         print(f'Converting the Ontology into the COCO Dataset Format...') 
