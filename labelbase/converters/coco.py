@@ -1,6 +1,5 @@
 from labelbox import Client
 import copy
-import json
 import datetime
 from google.api_core import retry
 import requests
