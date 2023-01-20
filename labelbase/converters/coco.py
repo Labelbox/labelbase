@@ -1,4 +1,4 @@
-import labelbox.schema.project.Project as labelboxProject
+from labelbox import Project as labelboxProject
 from labelbase.converters.ontology import get_ontology_schema_to_name_path
 import copy
 import datetime
