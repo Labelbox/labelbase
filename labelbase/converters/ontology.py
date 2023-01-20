@@ -46,14 +46,14 @@ def get_ontology_schema_to_name_path(ontology, divider:str="///", invert:bool=Fa
                     next_layer = node.get("options", [])
                     node_kind = "branch_option" if next_layer else "leaf_option" 
                 name_path = f"{parent_name_path}{divider}{node_name}" if parent_name_path else node_name
-                dict_key = name_path if invert else node['featureSchemaId']
-                dict_value = node['featureSchemaId'] if invert else name_path
+                dict_key = node['featureSchemaId'] if not invert else name_path
                 if detailed:
-                    dict_value = {"type":node_type,"kind":node_kind,"encoded_value":encoded_value}
-                    if invert:
-                        dict_value["name_path"] = name_path
+                    if not invert:
+                        dict_value = {"type":node_type,"kind":node_kind,"encoded_value":encoded_value,"name_path":name_path}
                     else:
-                        dict_value["schema_id"] = node['featureSchemaId']
+                        dict_value = {"type":node_type,"kind":node_kind,"encoded_value":encoded_value,"schema_id":node['featureSchemaId']}
+                else:
+                    dict_value = name_path if not invert else node['featureSchemaId']
                 feature_dict.update({dict_key : dict_value})
                 if next_layer:
                     feature_dict, encoded_value = map_layer(feature_dict, next_layer, name_path, divider, invert=invert, detailed=detailed, encoded_value=encoded_value)
