@@ -279,9 +279,8 @@ def export_labels(project:labelboxProject, verbose:bool=True, divider:str="///")
                 "name" : ontology_schema_to_name_path[featureSchemaId]['name']
             })     
         elif len(ontology_schema_to_name_path[featureSchemaId]['name_path'].split(divider)) == 2:
-            supercategory = ontology_schema_to_name_path[ontology_schema_to_name_path[featureSchemaId]['name_path'].split(divider)[0]]['name']
             categories.append({
-                "supercategory" : supercategory,
+                "supercategory" : ontology_schema_to_name_path[featureSchemaId]['name_path'].split(divider)[0]],
                 "id" : ontology_schema_to_name_path[featureSchemaId]["encoded_value"],
                 "name" : ontology_schema_to_name_path[featureSchemaId]['name']
             })
