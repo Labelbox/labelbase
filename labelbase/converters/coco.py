@@ -1,3 +1,4 @@
+import labelbox.schema.project.Project as labelboxProject
 from labelbase.converters.ontology import get_ontology_schema_to_name_path
 import copy
 import datetime
@@ -11,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from shapely.geometry import Polygon
 import cv2
 
-def _to_coco_bbox_converter(data_row_id, annotation, category_id):
+def _to_coco_bbox_converter(data_row_id:str, annotation:dict, category_id:str):
     """ Given a label dictionary and a bounding box annotation from said label, will return the coco-converted bounding box annotation dictionary
     Args:
         data_row_id (str)               :     Labelbox Data Row ID for this label
@@ -28,7 +29,7 @@ def _to_coco_bbox_converter(data_row_id, annotation, category_id):
     }
     return coco_annotation
 
-def _to_coco_line_converter(data_row_id, annotation, category_id):
+def _to_coco_line_converter(data_row_id:str, annotation:dict, category_id:str):
     """ Given a label dictionary and a line annotation from said label, will return the coco-converted line annotation dictionary
     Args:
         data_row_id (str)               :     Labelbox Data Row ID for this label
@@ -54,7 +55,7 @@ def _to_coco_line_converter(data_row_id, annotation, category_id):
     }
     return coco_annotation, num_line_keypoints
 
-def _to_coco_point_converter(data_row_id, annotation, category_id):
+def _to_coco_point_converter(data_row_id:str, annotation:dict, category_id:str):
     """ Given a label dictionary and a point annotation from said label, will return the coco-converted point annotation dictionary
     Args:
         data_row_id (str)               :     Labelbox Data Row ID for this label
@@ -72,7 +73,7 @@ def _to_coco_point_converter(data_row_id, annotation, category_id):
     }
     return coco_annotation  
 
-def _to_coco_polygon_converter(data_row_id, annotation, category_id):
+def _to_coco_polygon_converter(data_row_id:str, annotation:dict, category_id:str):
     """Given a label dictionary and a point annotation from said label, will return the coco-converted polygon annotation dictionary
     Args:
         data_row_id (str)               :     Labelbox Data Row ID for this label
@@ -95,16 +96,16 @@ def _to_coco_polygon_converter(data_row_id, annotation, category_id):
     return coco_annotation
   
 @retry.Retry(predicate=retry.if_exception_type(Exception), deadline=120.)
-def download_mask(annotation):
+def download_mask(url:str):
     """Incorporates retry logic into the download of a mask / polygon Instance URI
     Args:
         annotation (dict)       :     A dictionary pertaining to a label exported from Labelbox
     Returns:
         A numPy array of said mask
     """ 
-    return requests.get(annotation['instanceURI']).content 
+    return requests.get(url).content 
 
-def _to_coco_mask_converter(data_row_id, annotation, category_id):
+def _to_coco_mask_converter(data_row_id:str, annotation:dict, category_id:str):
     """Given a label dictionary and a mask annotation from said label, will return the coco-converted segmentation mask annotation dictionary
     Args:
         data_row_id (str)               :     Labelbox Data Row ID for this label
@@ -130,7 +131,7 @@ def _to_coco_mask_converter(data_row_id, annotation, category_id):
     }  
     return coco_annotation
 
-def _to_coco_annotation_converter(data_row_id, annotation, ontology_schema_to_name_path):
+def _to_coco_annotation_converter(data_row_id:str, annotation:dict, ontology_schema_to_name_path:dict):
     """ Wrapper to triage and multithread the coco annotation conversion - if nested classes exist, the category_id will be the first radio/checklist classification answer available
     Args:
         data_row_id (str)                   :     Labelbox Data Row ID for this label
@@ -163,7 +164,7 @@ def _to_coco_annotation_converter(data_row_id, annotation, ontology_schema_to_na
         coco_annotation = _to_coco_mask_converter(data_row_id, annotation, category_id)     
     return coco_annotation, max_line_keypoints
 
-def export_labels(project, verbose=True, divider="///"):
+def export_labels(project:labelboxProject, verbose:bool=True, divider:str="///"):
     """ Given a project and a list of labels, will create the COCO export json
     Args:
         project     :   Required (labelbox.schema.project.Project) - Labelbox Project object
