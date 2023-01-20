@@ -34,41 +34,41 @@ def get_ontology_schema_to_name_path(ontology, divider:str="///", invert:bool=Fa
                     node_name = node["name"]
                     next_layer = node["classifications"]
                     node_type = node["tool"]
-                node_kind = "tool"   
-            elif "instructions" in node.keys():
-                node_name = node["instructions"]
-                next_layer = node["options"]
-                node_kind = "classification"
-                node_type = node["type"]                        
-            else:
-                node_type = "option"
-                node_name = node["label"]
-                next_layer = node.get("options", [])
-                node_kind = "branch_option" if next_layer else "leaf_option" 
-            name_path = f"{parent_name_path}{divider}{node_name}" if parent_name_path else node_name
-            dict_key = node['featureSchemaId'] if invert else name_path
-            dict_value = name_path if invert else node['featureSchemaId']
-            if detailed:
-                dict_value = {"type":node_type,"kind":node_kind, "encoded_value" : encoded_value}
-                if invert:
-                    dict_value["name_path"]=name_path
+                    node_kind = "tool"   
+                elif "instructions" in node.keys():
+                    node_name = node["instructions"]
+                    next_layer = node["options"]
+                    node_kind = "classification"
+                    node_type = node["type"]                        
                 else:
-                    dict_value["schema_id"]=node['featureSchemaId']
-            feature_dict.update({dict_key : dict_value})
-            if next_layer:
-                feature_dict, encoded_value = map_layer(feature_dict, next_layer, name_path, divider, invert=invert, detailed=detailed, encoded_value=encoded_value)
-    return feature_dict, encoded_value
-if type(ontology) == labelboxOntology:
-    ontology_normalized = ontology.normalized
-elif type(ontology) == dict:
-    ontology_normalized = ontology
-else:
-    raise TypeError(f"Input for ontology must be either a Lablbox ontology object or a dictionary representation of a Labelbox ontology - received input of type {ontology}") 
-if ontology_normalized["tools"]:
-    working_dictionary, working_encoded_value = map_layer(feature_dict={}, node_layer=ontology_normalized["tools"], divider=divider, invert=invert, detailed=detailed)
-else:
-    working_dictionary = {} 
-    working_encoded_value = 0
-if ontology_normalized["classifications"]:
-    working_dictionary, working_encoded_value = map_layer(feature_dict=working_dictionary, node_layer=ontology_normalized["classifications"], divider=divider, invert=invert, detailed=detailed, encoded_value=working_encoded_value)
-return working_dictionary
+                    node_type = "option"
+                    node_name = node["label"]
+                    next_layer = node.get("options", [])
+                    node_kind = "branch_option" if next_layer else "leaf_option" 
+                name_path = f"{parent_name_path}{divider}{node_name}" if parent_name_path else node_name
+                dict_key = node['featureSchemaId'] if invert else name_path
+                dict_value = name_path if invert else node['featureSchemaId']
+                if detailed:
+                    dict_value = {"type":node_type,"kind":node_kind, "encoded_value" : encoded_value}
+                    if invert:
+                        dict_value["name_path"]=name_path
+                    else:
+                        dict_value["schema_id"]=node['featureSchemaId']
+                feature_dict.update({dict_key : dict_value})
+                if next_layer:
+                    feature_dict, encoded_value = map_layer(feature_dict, next_layer, name_path, divider, invert=invert, detailed=detailed, encoded_value=encoded_value)
+        return feature_dict, encoded_value
+    if type(ontology) == labelboxOntology:
+        ontology_normalized = ontology.normalized
+    elif type(ontology) == dict:
+        ontology_normalized = ontology
+    else:
+        raise TypeError(f"Input for ontology must be either a Lablbox ontology object or a dictionary representation of a Labelbox ontology - received input of type {ontology}") 
+    if ontology_normalized["tools"]:
+        working_dictionary, working_encoded_value = map_layer(feature_dict={}, node_layer=ontology_normalized["tools"], divider=divider, invert=invert, detailed=detailed)
+    else:
+        working_dictionary = {} 
+        working_encoded_value = 0
+    if ontology_normalized["classifications"]:
+        working_dictionary, working_encoded_value = map_layer(feature_dict=working_dictionary, node_layer=ontology_normalized["classifications"], divider=divider, invert=invert, detailed=detailed, encoded_value=working_encoded_value)
+    return working_dictionary
