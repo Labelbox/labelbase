@@ -94,7 +94,7 @@ def _to_coco_polygon_converter(data_row_id, annotation, category_id):
     }  
     return coco_annotation
   
-@retry.Retry(predicate=retry.if_exception_type(Exception), deadline=1200.)
+@retry.Retry(predicate=retry.if_exception_type(Exception), deadline=120.)
 def download_mask(annotation):
     """Incorporates retry logic into the download of a mask / polygon Instance URI
     Args:
