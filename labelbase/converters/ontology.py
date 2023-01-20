@@ -49,9 +49,9 @@ def get_ontology_schema_to_name_path(ontology, divider:str="///", invert:bool=Fa
                 dict_key = node['featureSchemaId'] if not invert else name_path
                 if detailed:
                     if not invert:
-                        dict_value = {"type":node_type,"kind":node_kind,"encoded_value":encoded_value,"name_path":name_path}
+                        dict_value = {"name":node_name,"type":node_type,"kind":node_kind,"encoded_value":encoded_value,"name_path":name_path}
                     else:
-                        dict_value = {"type":node_type,"kind":node_kind,"encoded_value":encoded_value,"schema_id":node['featureSchemaId']}
+                        dict_value = {"name":node_name,"type":node_type,"kind":node_kind,"encoded_value":encoded_value,"schema_id":node['featureSchemaId']}
                 else:
                     dict_value = name_path if not invert else node['featureSchemaId']
                 feature_dict.update({dict_key : dict_value})
