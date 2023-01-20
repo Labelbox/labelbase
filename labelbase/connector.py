@@ -73,3 +73,41 @@ def enforce_metadata_index(metadata_index:dict, verbose:bool=False):
         if verbose:
             print(f"No metadata_index provided")
     return
+
+def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, metadata_name_key_to_schema:dict, divider:str="///"):
+    """ Processes inbound values to ensure only valid values are added as metadata to Labelbox given the metadata type. Returns None if invalid or None
+    Args:
+        metadata_value              :   Required (any) - Value to-be-screeened and inserted as a proper metadata value to-be-uploaded to Labelbox
+        metadata_type               :   Required (str) - Either "string", "datetime", "enum", or "number"
+        parent_name                 :   Required (str) - Parent metadata field name
+        metadata_name_key_to_schema :   Required (dict) - Dictionary where {key=metadata_field_name_key : value=metadata_schema_id}
+        divider                     :   Required (str) - String delimiter for all name keys generated
+    Returns:
+        The proper data type given the metadata type for the input value. None if the value is invalud - should be skipped
+    """
+    if not metadata_value: # Catch empty values
+        return_value = None
+    if str(metadata_value) == "nan": # Catch NaN values
+        return_value = None
+    # By metadata type
+    if metadata_type == "enum": # For enums, it must be a schema ID - if we can't match it, we have to skip it
+        name_key = f"{parent_name}{divider}{str(metadata_value)}"
+        if name_key in metadata_name_key_to_schema.keys():
+            return_value = metadata_name_key_to_schema[name_key]
+        else:
+            return_value = None                  
+    elif metadata_type == "number": # For numbers, it's ints as strings
+        try:
+            return_value = str(int(row_value))
+        except:
+            return_value = None                  
+    elif metadata_type == "string": 
+        return_value = str(metadata_value)
+    else: # For datetime, it's an isoformat string
+        if type(metadata_value) == str:
+            return_value = parser.parse(metadata_value).astimezone(pytz.utc).replace(tzinfo=None)
+        elif type(metadata_value) == datetime.datetime:
+            return_value = metadata_value.astimezone(pytz.utc).replace(tzinfo=None)
+        else:
+            return_value = None       
+    return return_value   
