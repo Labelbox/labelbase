@@ -2,9 +2,8 @@ from labelbox import Client as labelboxClient
 from labelbox import Dataset as labelboxDataset
 from labelbase import connector
 
-def batch_create_data_rows(
-  client:lableboxClient, dataset:labelboxDataset, global_key_to_upload_dict:dict, 
-  skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
+def batch_create_data_rows(client:lableboxClient, dataset:labelboxDataset, global_key_to_upload_dict:dict, 
+                           skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
     """ Uploads data rows, skipping duplocate global keys or auto-generating new unique ones
     Args:
         client                      :   Required (labelbox.client.Client) - Labelbox Client object
