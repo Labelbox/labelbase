@@ -163,7 +163,7 @@ def _to_coco_annotation_converter(data_row_id, annotation, ontology_schema_to_na
         coco_annotation = _to_coco_mask_converter(data_row_id, annotation, category_id)     
     return coco_annotation, max_line_keypoints
 
-def export_to_coco(project, verbose=True, divider="///"):
+def export_labels(project, verbose=True, divider="///"):
     """ Given a project and a list of labels, will create the COCO export json
     Args:
         project     :   Required (labelbox.schema.project.Project) - Labelbox Project object
