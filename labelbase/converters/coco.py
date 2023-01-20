@@ -115,7 +115,7 @@ def _to_coco_mask_converter(data_row_id:str, annotation:dict, category_id:str):
         An annotation dictionary in the COCO format
     """  
     mask_data = download_mask(annotation['instanceURI'])
-    binary_mask_arr = np.where(np.array(Image.open(BytesIO(mask_data))))
+    binary_mask_arr = np.array(Image.open(BytesIO(mask_data)))[:,:,:1]
     contours = cv2.findContours(binary_mask_arr, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[0]
     coords = contours[0]
     poly_points = np.array([[coords[i][0][0], coords[i][0][1]] for i in range(0, len(coords))])
