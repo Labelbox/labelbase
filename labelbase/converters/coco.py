@@ -267,7 +267,7 @@ def export_to_coco(project, verbose=True, divider="///"):
                 "name" : ontology_schema_to_name_path[featureSchemaId]['name']
             })     
         elif len(ontology_schema_to_name_path[featureSchemaId]['name_path'].split(divider)) == 2:
-            supercategory = ontology_schema_to_name_path[ontology_schema_to_name_path[featureSchemaId]['parent_featureSchemaIds'][0]]['name']
+            supercategory = ontology_schema_to_name_path[ontology_schema_to_name_path[featureSchemaId]['name_path'].split(divider)[0]]['name']
             categories.append({
                 "supercategory" : supercategory,
                 "id" : ontology_schema_to_name_path[featureSchemaId]["encoded_value"],
