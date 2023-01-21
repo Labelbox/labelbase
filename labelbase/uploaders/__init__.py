@@ -1,2 +1,2 @@
-from labelbase.uploaders.batch_create_data_rows import batch_create_data_rows
-from labelbase.uploaders.batch_upload_annotations import batch_upload_annotations
+from .batch_create_data_rows import batch_create_data_rows
+from .batch_upload_annotations import batch_upload_annotations
