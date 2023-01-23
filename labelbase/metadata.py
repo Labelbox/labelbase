@@ -29,15 +29,15 @@ def get_metadata_schema_to_name_key(client:labelboxClient, lb_mdo=False, divider
     return_value = metadata_schema_to_name_key if not invert else {v:k for k,v in metadata_schema_to_name_key.items()}
     return return_value  
 
-def _refresh_metadata_ontology(lb_client:labelboxClient):
+def _refresh_metadata_ontology(client:labelboxClient):
     """ Refreshes a Labelbox Metadata Ontology
     Args:
-        lb_client           :   Required (labelbox.client.Client) - Labelbox Client object    
+        client              :   Required (labelbox.client.Client) - Labelbox Client object    
     Returns:
         lb_mdo              :   labelbox.schema.data_row_metadata.DataRowMetadataOntology
         lb_metadata_names   :   List of metadata field names from a Labelbox metadata ontology
     """
-    lb_mdo = lb_client.get_data_row_metadata_ontology()
+    lb_mdo = client.get_data_row_metadata_ontology()
     lb_metadata_names = [field['name'] for field in lb_mdo._get_ontology()]
     return lb_mdo, lb_metadata_names
 
