@@ -97,6 +97,7 @@ def batch_upload_annotations(client:labelboxClient, project:labelboxProject, ann
                              how:str="MAL", batch_size:int=20000, verbose=False):
     """ Batch imports labels given a batch size via MAL or LabelImport
     Args:
+        client          :   Required (labelbox.client.Client) - Labelbox Client object
         project         :   Required (labelbox.schema.project.Project) - Labelbox Project object
         annotations     :   Required (list) - List of annotations as ndjson dictionaries
         import_name     :   Optional (str) - Name to give to import jobs - will have a batch number suffix
@@ -137,7 +138,7 @@ def batch_upload_annotations(client:labelboxClient, project:labelboxProject, ann
             batch.extend(batch_dict[batch_number][data_row_id])
         if verbose:
             print(f'Batch Number {batch_number}: Uploading {len(batch)} annotations')
-        import_request = upload_protocol.create_from_objects(self.lb_client, project.uid, f"{import_name}-{batch_number}", batch)
+        import_request = upload_protocol.create_from_objects(client, project.uid, f"{import_name}-{batch_number}", batch)
         errors = import_request.errors
         if errors:
             if verbose:
