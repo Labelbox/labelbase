@@ -5,3 +5,5 @@ from labelbase.client import Client
 from labelbase import converters
 from labelbase.uploaders import *
 from labelbase.connector import *
+from labelbase.metadata import *
+from labelbase.ontology import *
