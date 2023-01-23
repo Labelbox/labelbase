@@ -1,4 +1,5 @@
 from labelbox import Client as labelboxClient
+from labelbox.schema.dataset import Dataset as labelboxDataset
 
 def get_or_create_dataset(client:labelboxClient, name:str, integration:str="DEFAULT", verbose:bool=False):
     """ Gets or creates a Labelbox dataset given a dataset name and a deleagted access integration name
