@@ -3,7 +3,25 @@ from labelbox import Dataset as labelboxDataset
 from labelbox import Project as labelboxProject
 import uuid
 import math
-from labelbase import connector
+
+def check_global_keys(client:labelboxClient, global_keys:list):
+    """ Checks if data rows exist for a set of global keys
+    Args:
+        client                  :   Required (labelbox.client.Client) - Labelbox Client object    
+        global_keys             : Required (list(str)) - List of global key strings
+    Returns:
+        True if global keys are available, False if not
+    """
+    query_keys = [str(x) for x in global_keys]
+    # Create a query job to get data row IDs given global keys
+    query_str_1 = """query get_datarow_with_global_key($global_keys:[ID!]!){dataRowsForGlobalKeys(where:{ids:$global_keys}){jobId}}"""
+    query_str_2 = """query get_job_result($job_id:ID!){dataRowsForGlobalKeysResult(jobId:{id:$job_id}){data{
+                    accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""        
+    res = None
+    while not res:
+        query_job_id = client.execute(query_str_1, {"global_keys":global_keys})['dataRowsForGlobalKeys']['jobId']
+        res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']
+    return res   
 
 def batch_create_data_rows(client:labelboxClient, dataset:labelboxDataset, global_key_to_upload_dict:dict, 
                            skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
@@ -20,7 +38,7 @@ def batch_create_data_rows(client:labelboxClient, dataset:labelboxDataset, globa
         Upload errors
     """
     global_keys_list = list(global_key_to_upload_dict.keys())
-    payload = connector.check_global_keys(client, global_keys_list)
+    payload = check_global_keys(client, global_keys_list)
     if payload:
         loop_counter = 0
         while len(payload['notFoundGlobalKeys']) != len(global_keys_list):
@@ -29,7 +47,7 @@ def batch_create_data_rows(client:labelboxClient, dataset:labelboxDataset, globa
                 if verbose:
                     print(f"Warning: Global keys in this upload are in use by deleted data rows, clearing all global keys from deleted data rows")
                 client.clear_global_keys(payload['deletedDataRowGlobalKeys'])
-                payload = connector.check_global_keys(client, global_keys_list)
+                payload = check_global_keys(client, global_keys_list)
                 continue
             # If global keys are taken by existing data rows, either skip them on upload or update the global key to have a "_{loop_counter}" suffix
             if payload['fetchedDataRows']:
@@ -51,7 +69,7 @@ def batch_create_data_rows(client:labelboxClient, dataset:labelboxDataset, globa
                             new_upload_dict['global_key'] = new_global_key # Put new global key values in this data_row_upload_dict
                             global_key_to_upload_dict[new_global_key] = new_upload_dict # Add your new data_row_upload_dict to your upload_dict                               
                 global_keys_list = list(global_key_to_upload_dict.keys())
-                payload = connector.check_global_keys(client, global_keys_list) 
+                payload = check_global_keys(client, global_keys_list) 
     upload_list = list(global_key_to_upload_dict.values())
     if verbose:
         print(f'Beginning data row upload: uploading {len(upload_list)} data rows')
