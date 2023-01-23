@@ -4,18 +4,18 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 
-def get_metadata_schema_to_name_key(lb_client:labelboxClient, lb_mdo=False, divider="///", invert=False):
+def get_metadata_schema_to_name_key(client:labelboxClient, lb_mdo=False, divider="///", invert=False):
     """ Creates a dictionary where {key=metadata_schema_id: value=metadata_name_key} 
     - name_key is name for all metadata fields, and for enum options, it is "parent_name{divider}child_name"
     Args:
-        lb_client           :   Required (labelbox.client.Client) - Labelbox Client object    
+        client              :   Required (labelbox.client.Client) - Labelbox Client object    
         lb_mdo              :   Optional (labelbox.schema.data_row_metadata.DataRowMetadataOntology) - Labelbox metadata ontology
         divider             :   Optional (str) - String separating parent and enum option metadata values
         invert              :   Optional (bool) - If True, inverts the dictionary to be where {key=metadata_name_key: value=metadata_schema_id}
     Returns:
         Dictionary where {key=metadata_schema_id: value=metadata_name_key} - or the inverse
     """
-    lb_mdo = lb_client.get_data_row_metadata_ontology() if not lb_mdo else lb_mdo
+    lb_mdo = client.get_data_row_metadata_ontology() if not lb_mdo else lb_mdo
     lb_metadata_dict = lb_mdo.reserved_by_name
     lb_metadata_dict.update(lb_mdo.custom_by_name)
     metadata_schema_to_name_key = {}
@@ -60,10 +60,10 @@ def _enforce_metadata_index(metadata_index:dict, verbose:bool=False):
             print(f"No metadata_index provided")
     return
 
-def sync_metadata_fields(lb_client:labelboxClient, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False):
+def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False):
     """ Ensures Labelbox's Metadata Ontology and your input have all necessary metadata fields / columns given a metadata_index
     Args:
-        lb_client                   :   Required (labelbox.client.Client) - Labelbox Client object    
+        client                      :   Required (labelbox.client.Client) - Labelbox Client object    
         table                       :   Required - Input user table
         get_columns_function        :   Required (function) - Function that can get the column names from the table provided, returns list of strings
         add_column_function         :   Required (function) - Function that can add an empty column to the table provided, returns table
@@ -74,7 +74,7 @@ def sync_metadata_fields(lb_client:labelboxClient, table, get_columns_function, 
         Updated table if successful, False if not
     """
     # Get your metadata ontology, grab all the metadata field names
-    lb_mdo, lb_metadata_names = _refresh_metadata_ontology(lb_client)
+    lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
     # Convert your meatdata_index values from strings into labelbox.schema.data_row_metadata.DataRowMetadataKind types
     conversion = {"enum" : DataRowMetadataKind.enum, "string" : DataRowMetadataKind.string, "datetime" : DataRowMetadataKind.datetime, "number" : DataRowMetadataKind.number}
     # Check to make sure the value in your metadata index is one of the accepted values        
@@ -93,7 +93,7 @@ def sync_metadata_fields(lb_client:labelboxClient, table, get_columns_function, 
         if metadata_field_name not in lb_metadata_names:
             enum_options = get_unique_values_function(table, metadata_field_name) if metadata_type == "enum" else []
             lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
-            lb_mdo, lb_metadata_names = _refresh_metadata_ontology(lb_client)
+            lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
     if 'lb_integration_source' not in lb_metadata_names:
         lb_mdo.create_schema(name='lb_integration_source', kind=conversion["string"])
     return table  
