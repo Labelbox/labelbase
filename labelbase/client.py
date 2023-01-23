@@ -1,15 +1,5 @@
 from labelbox import Client as labelboxClient
-from labelbase import connector
 from labelbox.schema.dataset import Dataset as labelboxDataset
-from labelbox.schema.project import Project as labelboxProject
-from labelbox.schema.data_row_metadata import DataRowMetadataKind
-from google.api_core import retry
-import math
-import uuid
-from datetime import datetime
-from dateutil import parser
-import pytz
-
 
 class Client:
     """ A Labelbase Client, containing a Labelbox Client, that can perform a plethora of helper functions
@@ -22,7 +12,7 @@ class Client:
         lb_client                   :   labelbox.Client object
     Key Functions:
     """
-    def __init__(self, lb_api_key=None, lb_endpoint='https://api.labelbox.com/graphql', lb_enable_experimental=False, lb_app_url="https://app.labelbox.com"):  
+    def __init__(self, lb_api_key:str=None, lb_endpoint:str='https://api.labelbox.com/graphql', lb_enable_experimental:bool=False, lb_app_url:str="https://app.labelbox.com"):  
         self.lb_client = labelboxClient(lb_api_key, endpoint=lb_endpoint, enable_experimental=lb_enable_experimental, app_url=lb_app_url)
 
     def check_global_keys(self, global_keys:list):
@@ -44,7 +34,7 @@ class Client:
         return res               
     
     def get_or_create_dataset(self, name:str, integration:str="DEFAULT", verbose:bool=False):
-        """ Gets or creates a Labelbox dataset given a dataset name and an integration name
+        """ Gets or creates a Labelbox dataset given a dataset name and a deleagted access integration name
         Args:
             name                :   Required (str) - Desired dataset name
             integration         :   Optional (str) - Existing Labelbox delegated access setting for new dataset
@@ -55,10 +45,20 @@ class Client:
         try: 
             dataset = next(self.lb_client.get_datasets(where=(labelboxDataset.name==name)))
             if verbose:
-                print(f'Using existing dataset with ID {dataset.uid}')
+                print(f'Got existing dataset with ID {dataset.uid}')
         except:
-            dataset = connector.create_dataset_with_integration(client=self.lb_client, name=name, integration=integration, verbose=verbose)
+            for iam_integration in self.lb_client.get_organization().get_iam_integrations(): 
+                if iam_integration.name == integration: # If the names match, reassign the iam_integration input value
+                    integration = iam_integration
+                    if verbose:
+                        print(f'Creating a Labelbox dataset with name "{name}" and delegated access integration name {integration.name}')
+                    break
+            # If none match, use the default setting
+            if (type(integration)==str) and (verbose==True):
+                print(f'Creating a Labelbox dataset with name "{name}" and the default delegated access integration setting')
+            # Create the Labelbox dataset 
+            dataset = self.lb_client.create_dataset(name=name, iam_integration=integration)             
             if verbose:
                 print(f'Created a new dataset with ID {dataset.uid}') 
         return dataset
-        
+       
