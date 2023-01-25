@@ -60,7 +60,7 @@ def _enforce_metadata_index(metadata_index:dict, verbose:bool=False):
             print(f"No metadata_index provided")
     return
 
-def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False):
+def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False, extra_client=None):
     """ Ensures Labelbox's Metadata Ontology and your input have all necessary metadata fields / columns given a metadata_index
     Args:
         client                      :   Required (labelbox.client.Client) - Labelbox Client object    
@@ -69,7 +69,8 @@ def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add
         add_column_function         :   Required (function) - Function that can add an empty column to the table provided, returns table
         get_unique_values_function  :   Required (function) - Function that grabs all unique values from a column, returns list of strings
         metadata_index              :   Optional (dict) - Dictionary where {key=column_name : value=metadata_type} - metadata_type must be one of "enum", "string", "datetime" or "number"
-        verbose                     :   Required (bool) - If True, prints information about code execution
+        verbose                     :   Optional (bool) - If True, prints information about code execution
+        extra_client                :   Optional - If relevant, the input functions' required other client object
     Returns:
         Updated table if successful, False if not
     """
@@ -82,16 +83,16 @@ def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add
     # If your table doesn't have columns for all your metadata_field_names, make columns for them
     if type(table) != bool:
         if metadata_index:
-            column_names = get_columns_function(table)
+            column_names = get_columns_function(table, client=extra_client)
             for metadata_field_name in metadata_index.keys():
                 if metadata_field_name not in column_names:
-                    table = add_column_function(table, column_name=metadata_field_name, default_value=None)
+                    table = add_column_function(table, column_name=metadata_field_name, default_value=None, client=extra_client)
     # If Labelbox doesn't have metadata for all your metadata_field_names, make Labelbox metadata fields
     for metadata_field_name in metadata_index.keys():
         metadata_type = metadata_index[metadata_field_name]
         # Check to see if a metadata index input is a metadata field in Labelbox. If not, create the metadata field in Labelbox. 
         if metadata_field_name not in lb_metadata_names:
-            enum_options = get_unique_values_function(table, metadata_field_name) if metadata_type == "enum" else []
+            enum_options = get_unique_values_function(table, metadata_field_name, client=extra_client) if metadata_type == "enum" else []
             lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
             lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
     if 'lb_integration_source' not in lb_metadata_names:
