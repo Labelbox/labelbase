@@ -120,6 +120,7 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
     Returns: 
         A list of errors if there is one, True if upload failed, False if successful
     """
+    # Determine the upload type
     if how.lower() == "mal":
         from labelbox import MALPredictionImport as upload_protocol
         if verbose:
@@ -131,7 +132,9 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
     else:
         raise ValueError(f"Import method must be wither 'mal' or 'import' - received value {how}")
     batch_number = 0        
+    # For each project
     for project_id in project_id_to_upload_dict:
+        # Create a dicationary where {key=data_row_id : value=list_of_annotations}
         data_row_id_to_upload_dict = {}
         for annotation in project_id_to_upload_dict[project_id]:
             data_row_id = annotation['dataRow']['id']
@@ -139,6 +142,7 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
                 data_row_id_to_upload_dict[data_row_id] = [annotation]
             else:
                 data_row_id_to_upload_dict[data_row_id].append(annotation)
+        # Create ndjson batches at the data row level
         data_row_list = len(list(data_row_id_to_upload_dict.keys()))
         for i in range(0, data_row_list, batch_size):
             data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
