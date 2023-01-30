@@ -93,17 +93,16 @@ def batch_create_data_rows(client:labelboxClient, dataset:labelboxDataset, globa
         print(f'Upload complete')
     return []
 
-def batch_upload_annotations(client:labelboxClient, project:labelboxProject, annotations:list, import_name:str=str(uuid.uuid4()), 
+def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:dict, import_name:str=str(uuid.uuid4()), 
                              how:str="MAL", batch_size:int=20000, verbose=False):
     """ Batch imports labels given a batch size via MAL or LabelImport
     Args:
-        client          :   Required (labelbox.client.Client) - Labelbox Client object
-        project         :   Required (labelbox.schema.project.Project) - Labelbox Project object
-        annotations     :   Required (list) - List of annotations as ndjson dictionaries
-        import_name     :   Optional (str) - Name to give to import jobs - will have a batch number suffix
-        how             :   Optional (str) - Upload method - options are "mal" and "labelimport" - defaults to "labelimport"
-        batch_size      :   Optional (int) - Desired batch upload size - this size is determined by annotation counts, not by data row count
-        verbose         :   Optional (bool) - If True, prints information about code execution
+        client                      :   Required (labelbox.client.Client) - Labelbox Client object
+        project_id_to_upload_dict   :   Required (dict) Dictionary where {key=project_id - value=annotation_upload_list} - annotations must be in ndjson format
+        import_name                 :   Optional (str) - Name to give to import jobs - will have a batch number suffix
+        how                         :   Optional (str) - Upload method - options are "mal" and "labelimport" - defaults to "labelimport"
+        batch_size                  :   Optional (int) - Desired batch upload size - this size is determined by annotation counts, not by data row count
+        verbose                     :   Optional (bool) - If True, prints information about code execution
     Returns: 
         A list of errors if there is one, True if upload failed, False if successful
     """
@@ -111,42 +110,59 @@ def batch_upload_annotations(client:labelboxClient, project:labelboxProject, ann
         from labelbox import MALPredictionImport as upload_protocol
         if verbose:
             print(f"Uploading {len(annotations)} annotations non-submitted pre-labels (MAL)")            
-    else:
+    elif how == "import":
         from labelbox import LabelImport as upload_protocol
-        if how != "labelimport":
-            if verbose:
-                print(f"'how' variable was neither `mal` or `labelimport` - defaulting to Label Import")
         if verbose:
             print(f"Uploading {len(annotations)} annotations as submitted labels (Label Import)")
-    batch_count = int(math.ceil(len(annotations) / len(batch_size))) # Determine number of batches needed
-    batch_dict = {number : {} for number in range(0, batch_count)} # Dictionary where {key=batch_number : value={key=data_row_id : value=annotation_list}}
-    for annotation in annotations:
-        in_batch = False 
-        for batch_number in batch_dict:
-            if annotation['dataRow']['id'] in batch_dict[batch_number].keys(): # If this annotation's data row is part of a batch, add the annotation to that batch
-                in_batch = True
-                batch_dict[batch_number][annotation['dataRow']['id']].append(annotation)
-        if not in_batch: # If this annotation's data row is not part of a batch, add the annotation to the batch under the batch_size
-            for batch_number in batch_dict:
-                if len(list(batch_dict[batch_number].keys())) >= batch_size:
-                    continue
-                else:
-                    batch_dict[batch_number][annotation['dataRow']['id']] = [annotation]
-    for batch_number in batch_dict:
-        batch = []
-        for data_row_id in batch_dict[batch].keys():
-            batch.extend(batch_dict[batch_number][data_row_id])
-        if verbose:
-            print(f'Batch Number {batch_number}: Uploading {len(batch)} annotations')
-        import_request = upload_protocol.create_from_objects(client, project.uid, f"{import_name}-{batch_number}", batch)
-        errors = import_request.errors
-        if errors:
-            if verbose:
-                print(f'Error: upload batch number {batch_number} unsuccessful')
-            return errors
-        else:
-            if verbose:
-                print(f'Success: upload batch number {batch_number} complete')               
+    else:
+        raise ValueError(f"Import method must be wither 'mal' or 'import' - received value {how}")
+    batch_number = 0        
+    for project_id in project_id_to_upload_dict:
+        data_row_id_to_upload_dict = {}
+        for annotation in project_id_to_upload_dict[project_id]:
+            data_row_id = annotation['dataRow']['id']
+            if data_row_id not in data_row_id_to_upload_dict:
+                data_row_id_to_upload_dict[data_row_id] = [annotation]
+            else:
+                data_row_id_to_upload_dict[data_row_id].append(annotation)
+        data_row_list = len(list(data_row_id_to_upload_dict.keys()))
+        for i in range(0, data_row_list, batch_size):
+            data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
+            upload = []
+            for annotation in project_id_to_upload_dict[project_id]:
+                if annotation['dataRow']['id'] in data_row_batch:
+                    upload.append(annotation)
+            batch_number += 1
+            import_request = upload_protocol.create_from_objects(client, project_id, f"{import_name}-{batch_number}", upload)
+            errors = import_request.errors
+            if errors:
+                if verbose:
+                    print(f'Error: upload batch number {batch_number} unsuccessful')
+                return errors
+            else:
+                if verbose:
+                    print(f'Success: upload batch number {batch_number} complete')               
     return []
-    
-  
+
+import uuid
+
+def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, priority:int=5, batch_name:str=str(uuid.uuid4()), batch_size:int=1000):
+    """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
+    Args:
+        client                      :   Required (labelbox.client.Client) - Labelbox Client object
+        project_id_to_batch_dict    :   Required (dict) Dictionary where {key=project_id : value=list_of_data_row_ids}
+        priority                    :   Optinoal (int) - Between 1 and 5, what priority to give to data row batches sent to projects
+        batch_name                  :   Optional (str) : Prefix to add to batch name - script generates batch number, which it adds to said prefix
+        batch_size                  :   Optional (int) : Size of batches to send to project
+    Returns:
+        True
+    """
+    batch_number = 0
+    for project_id in project_id_to_batch_dict:
+        project - client.get_project(project_id)
+        for i in range(0, len(project_id_to_batch_dict[project_id]), batch_size):
+            batch_number += 1
+            data_row_ids = project_id_to_batch_dict[project_id]
+            subset = data_row_ids[i:] if i+batch_size >= len(data_row_ids) else data_row_ids[i:i+batch_size]
+            project.create_batch(name=f"{batch_name}-{batch_number}", data_rows=subset)
+    return True  
