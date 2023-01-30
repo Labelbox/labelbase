@@ -15,7 +15,7 @@ def create_global_key_to_data_row_dict(client:labelboxClient, global_keys:list):
     res = client.get_data_row_ids_for_global_keys(global_keys, timeout_seconds=240)
     if res['errors']:
         raise ValueError(f"{res}")
-    global_key_to_data_row_dict = {global_keys[i] : res['results']['i'] for i in range(0, len(global_keys))}
+    global_key_to_data_row_dict = {global_keys[i] : res['results'][i] for i in range(0, len(global_keys))}
     return global_key_to_data_row_dict
 
 def check_global_keys(client:labelboxClient, global_keys:list):
