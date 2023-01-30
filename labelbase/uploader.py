@@ -158,8 +158,6 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
                     print(f'Success: upload batch number {batch_number} complete')               
     return []
 
-import uuid
-
 def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, priority:int=5, batch_name:str=str(uuid.uuid4()), batch_size:int=1000):
     """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
     Args:
