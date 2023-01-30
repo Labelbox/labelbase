@@ -108,23 +108,23 @@ def batch_create_data_rows(client:labelboxClient, dataset:labelboxDataset, globa
     return []
 
 def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:dict, import_name:str=str(uuid.uuid4()), 
-                             how:str="MAL", batch_size:int=20000, verbose=False):
+                             how:str="import", batch_size:int=20000, verbose=False):
     """ Batch imports labels given a batch size via MAL or LabelImport
     Args:
         client                      :   Required (labelbox.client.Client) - Labelbox Client object
         project_id_to_upload_dict   :   Required (dict) Dictionary where {key=project_id - value=annotation_upload_list} - annotations must be in ndjson format
         import_name                 :   Optional (str) - Name to give to import jobs - will have a batch number suffix
-        how                         :   Optional (str) - Upload method - options are "mal" and "labelimport" - defaults to "labelimport"
+        how                         :   Optional (str) - Upload method - options are "mal" and "import" - defaults to "import"
         batch_size                  :   Optional (int) - Desired batch upload size - this size is determined by annotation counts, not by data row count
         verbose                     :   Optional (bool) - If True, prints information about code execution
     Returns: 
         A list of errors if there is one, True if upload failed, False if successful
     """
-    if how == "mal":
+    if how.lower() == "mal":
         from labelbox import MALPredictionImport as upload_protocol
         if verbose:
             print(f"Uploading {len(annotations)} annotations non-submitted pre-labels (MAL)")            
-    elif how == "import":
+    elif how.lower() == "import":
         from labelbox import LabelImport as upload_protocol
         if verbose:
             print(f"Uploading {len(annotations)} annotations as submitted labels (Label Import)")
