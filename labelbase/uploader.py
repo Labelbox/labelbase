@@ -173,12 +173,15 @@ def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, 
     Returns:
         True
     """
-    batch_number = 0
-    for project_id in project_id_to_batch_dict:
-        project - client.get_project(project_id)
-        for i in range(0, len(project_id_to_batch_dict[project_id]), batch_size):
-            batch_number += 1
-            data_row_ids = project_id_to_batch_dict[project_id]
-            subset = data_row_ids[i:] if i+batch_size >= len(data_row_ids) else data_row_ids[i:i+batch_size]
-            project.create_batch(name=f"{batch_name}-{batch_number}", data_rows=subset)
-    return True  
+    try:
+        batch_number = 0
+        for project_id in project_id_to_batch_dict:
+            project - client.get_project(project_id)
+            for i in range(0, len(project_id_to_batch_dict[project_id]), batch_size):
+                batch_number += 1
+                data_row_ids = project_id_to_batch_dict[project_id]
+                subset = data_row_ids[i:] if i+batch_size >= len(data_row_ids) else data_row_ids[i:i+batch_size]
+                project.create_batch(name=f"{batch_name}-{batch_number}", data_rows=subset)
+        return True  
+    except Exception as e:
+        return e
