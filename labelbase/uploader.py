@@ -130,37 +130,41 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
         if verbose:
             print(f"Uploading {len(annotations)} annotations as submitted labels (Label Import)")
     else:
-        raise ValueError(f"Import method must be wither 'mal' or 'import' - received value {how}")
+        return f"No annotation upload attempted - import method must be wither 'mal' or 'import' - received value {how}"
     batch_number = 0        
     # For each project
-    for project_id in project_id_to_upload_dict:
-        # Create a dicationary where {key=data_row_id : value=list_of_annotations}
-        data_row_id_to_upload_dict = {}
-        for annotation in project_id_to_upload_dict[project_id]:
-            data_row_id = annotation['dataRow']['id']
-            if data_row_id not in data_row_id_to_upload_dict:
-                data_row_id_to_upload_dict[data_row_id] = [annotation]
-            else:
-                data_row_id_to_upload_dict[data_row_id].append(annotation)
-        # Create ndjson batches at the data row level
-        data_row_list = len(list(data_row_id_to_upload_dict.keys()))
-        for i in range(0, data_row_list, batch_size):
-            data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
-            upload = []
+    if project_id_to_upload_dict:
+        for project_id in project_id_to_upload_dict:
+            # Create a dicationary where {key=data_row_id : value=list_of_annotations}
+            data_row_id_to_upload_dict = {}
             for annotation in project_id_to_upload_dict[project_id]:
-                if annotation['dataRow']['id'] in data_row_batch:
-                    upload.append(annotation)
-            batch_number += 1
-            import_request = upload_protocol.create_from_objects(client, project_id, f"{import_name}-{batch_number}", upload)
-            errors = import_request.errors
-            if errors:
-                if verbose:
-                    print(f'Error: upload batch number {batch_number} unsuccessful')
-                return errors
-            else:
-                if verbose:
-                    print(f'Success: upload batch number {batch_number} complete')               
-    return []
+                data_row_id = annotation['dataRow']['id']
+                if data_row_id not in data_row_id_to_upload_dict:
+                    data_row_id_to_upload_dict[data_row_id] = [annotation]
+                else:
+                    data_row_id_to_upload_dict[data_row_id].append(annotation)
+            # Create ndjson batches at the data row level
+            data_row_list = len(list(data_row_id_to_upload_dict.keys()))
+            for i in range(0, data_row_list, batch_size):
+                data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
+                upload = []
+                for annotation in project_id_to_upload_dict[project_id]:
+                    if annotation['dataRow']['id'] in data_row_batch:
+                        upload.append(annotation)
+                batch_number += 1
+                import_request = upload_protocol.create_from_objects(client, project_id, f"{import_name}-{batch_number}", upload)
+                errors = import_request.errors
+                if errors:
+                    if verbose:
+                        print(f'Error: upload batch number {batch_number} unsuccessful')
+                    return errors
+                else:
+                    if verbose:
+                        print(f'Success: upload batch number {batch_number} complete')   
+        return []
+    else:
+        return "No annotation upload attempted"
+
 
 def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, priority:int=5, batch_name:str=str(uuid.uuid4()), batch_size:int=1000):
     """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
