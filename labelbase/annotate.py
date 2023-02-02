@@ -6,12 +6,12 @@ def create_ndjsons(data_row_id:str, annotation_values:list, ontology_index:dict,
         data_row_id         :   Required (str) - Labelbox Data Row ID
         annotation_values   :   Required (list) - List of annotation value lists where 1 list element must correspond to the following format:
                                     For tools:
-                                        bbox          :   [tool_name, top, left, height, width, [nested_classification_name_paths]]
+                                        bbox          :   [tool_name, [top, left, height, width], [nested_classification_name_paths]]
                                         polygon       :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
                                         line          :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                                        point         :   [tool_name, x, y, [nested_classification_name_paths]]
-                                        mask          :   [tool_name, URL, colorRGB, [nested_classification_name_paths]]
-                                        named-entity  :   [tool_name, start, end, [nested_classification_name_paths]]
+                                        point         :   [tool_name, [x, y], [nested_classification_name_paths]]
+                                        mask          :   [tool_name, [URL, colorRGB], [nested_classification_name_paths]]
+                                        named-entity  :   [tool_name, [start, end], [nested_classification_name_paths]]
                                     For classifications:
                                         radio         :   [name_paths]
                                         check         :   [name_paths]
@@ -38,12 +38,12 @@ def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, 
         data_row_id         :   Required (str) - Labelbox Data Row ID
         annotation_input    :   Required (list) - List that corresponds to a single annotation for a label in the following format
                                     For tools:
-                                        bbox          :   [tool_name, top, left, height, width, [nested_classification_name_paths]]
+                                        bbox          :   [tool_name, [top, left, height, width], [nested_classification_name_paths]]
                                         polygon       :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
                                         line          :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                                        point         :   [tool_name, x, y, [nested_classification_name_paths]]
-                                        mask          :   [tool_name, URL, colorRGB, [nested_classification_name_paths]]
-                                        named-entity  :   [tool_name, start, end, [nested_classification_name_paths]]
+                                        point         :   [tool_name, [x, y], [nested_classification_name_paths]]
+                                        mask          :   [tool_name, [URL, colorRGB], [nested_classification_name_paths]]
+                                        named-entity  :   [tool_name, [start, end], [nested_classification_name_paths]]
                                     For classifications:
                                         radio         :   [name_paths]
                                         check         :   [name_paths]
@@ -65,18 +65,18 @@ def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, 
     if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
         ndjson["name"] = top_level_name
         if annotation_type == "bbox":
-            ndjson[annotation_type] = {"top":annotation_input[1],"left":annotation_input[2],"height":annotation_input[3],"width":annotation_input[4]}
+            ndjson[annotation_type] = {"top":annotation_input[1][0],"left":annotation_input[1][1],"height":annotation_input[1][2],"width":annotation_input[1][3]}
         elif annotation_type in ["polygon", "line"]:
             ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[1]]     
         elif annotation_type == "point":
-            ndjson[annotation_type] = {"x":annotation_input[1],"y":annotation_input[2]}
+            ndjson[annotation_type] = {"x":annotation_input[1][0],"y":annotation_input[1][1]}
         elif annotation_type == "mask":
-            ndjson[annotation_type] = {"instanceURI":annotation_input[1],"colorRGB":annotation_input[2]}
+            ndjson[annotation_type] = {"instanceURI":annotation_input[1][0],"colorRGB":annotation_input[1][1]}
         else: # Only one left is named-entity 
-            ndjson["location"] = {"start" : annotation_input[1],"end":annotation_input[2]}
-        if annotation_input[-1]:
+            ndjson["location"] = {"start" : annotation_input[1][0],"end":annotation_input[1][1]}
+        if annotation_input[2]:
             ndjson["classifications"] = []
-            for classification_name_paths in annotation_input[-1]:
+            for classification_name_paths in annotation_input[2]:
                 classification_names = pull_first_name_from_paths(classification_name_paths, divider=divider)
                 for classification_name in classification_names:
                     ndjson["classifications"].append(
