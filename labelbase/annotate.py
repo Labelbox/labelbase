@@ -1,18 +1,17 @@
 import uuid
 
-def create_ndjsons(data_row_id:str, annotation_values:list, annotation_type:str, ontology_index:dict, divider:str="///"):
+def create_ndjsons(data_row_id:str, annotation_values:list, ontology_index:dict, divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation
     Args:
         data_row_id         :   Required (str) - Labelbox Data Row ID
-        annotation_values   :   Required (list) - List of annotation values for a given data row in the following format 
+        annotation_values   :   Required (list) - List of annotation value lists where 1 list element must correspond to the following format:
                                     For tools:
-                                        bbox          :   [[name_paths], [top, left, height, width], [name_paths], [top, left, height, width]]
-                                        polygon       :   [[name_paths], [(x, y), (x, y),...(x, y)], [name_paths], [(x, y), (x, y),...(x, y)]]
-                                        point         :   [[name_paths], [x, y], [name_paths], [x, y]]
-                                        mask          :   [[name_paths], URL, colorRGB], [name_paths], URL, colorRGB]]
-                                                              - URL must be an accessible string
-                                        line          :   [[name_paths], [(x, y), (x, y),...(x, y)], [name_paths], [(x, y), (x, y),...(x, y)]]
-                                        named-entity  :   [[name_paths], [start, end], [name_paths], [start, end]]
+                                        bbox          :   [tool_name, top, left, height, width, [nested_classification_name_paths]]
+                                        polygon       :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                                        line          :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                                        point         :   [tool_name, x, y, [nested_classification_name_paths]]
+                                        mask          :   [tool_name, URL, colorRGB, [nested_classification_name_paths]]
+                                        named-entity  :   [tool_name, start, end, [nested_classification_name_paths]]
                                     For classifications:
                                         radio         :   [name_paths]
                                         check         :   [name_paths]
@@ -26,8 +25,10 @@ def create_ndjsons(data_row_id:str, annotation_values:list, annotation_type:str,
     ndjsons = []
     for annotation_value in annotation_values:
         ndjsons.append(ndjson_builder(
-          data_row_id=data_row_id, annotation_value=annotation_value, 
-          annotation_type=annotation_type, ontology_index=ontology_index, divider=divider
+            data_row_id=data_row_id, 
+            annotation_value=annotation_value, 
+            ontology_index=ontology_index, 
+            divider=divider
         ))
     return ndjsons
 
@@ -37,12 +38,12 @@ def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, 
         data_row_id         :   Required (str) - Labelbox Data Row ID
         annotation_input    :   Required (list) - List that corresponds to a single annotation for a label in the following format
                                     For tools:
-                                        bbox          :   [tool_name, top, left, height, width, [classification_name_paths]]
-                                        polygon       :   [tool_name, [(x, y), (x, y),...(x, y)], [classification_name_paths]]
-                                        line          :   [tool_name, [(x, y), (x, y),...(x, y)], [classification_name_paths]]
-                                        point         :   [tool_name, x, y, [classification_name_paths]]
-                                        mask          :   [tool_name, URL, colorRGB, [classification_name_paths]]
-                                        named-entity  :   [tool_name, start, end, [classification_name_paths]]
+                                        bbox          :   [tool_name, top, left, height, width, [nested_classification_name_paths]]
+                                        polygon       :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                                        line          :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                                        point         :   [tool_name, x, y, [nested_classification_name_paths]]
+                                        mask          :   [tool_name, URL, colorRGB, [nested_classification_name_paths]]
+                                        named-entity  :   [tool_name, start, end, [nested_classification_name_paths]]
                                     For classifications:
                                         radio         :   [name_paths]
                                         check         :   [name_paths]
@@ -78,23 +79,27 @@ def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, 
             for classification_name_paths in annotation_input[-1]:
                 classification_names = pull_first_name_from_paths(classification_name_paths, divider=divider)
                 for classification_name in classification_names:
-                    ndjson["classifications"].append(classification_builder(
-                        classification_path=f"{top_level_name}{divider}{classification_name}",
-                        child_paths=get_child_paths(first=classification_name, paths=annotation_input[-1], divider=divider),
-                        ontology_index=ontology_index
-                    ))
+                    ndjson["classifications"].append(
+                        classification_builder(
+                            classification_path=f"{top_level_name}{divider}{classification_name}",
+                            child_paths=get_child_paths(first=classification_name, paths=annotation_input[-1], divider=divider),
+                            ontology_index=ontology_index,
+                            divider=divider
+                        )
+                    )
     # Otherwise, the top level feature is a classification
     else:
         ndjson.update(
             classification_builder(
                 classification_path=top_level_name, 
-                child_paths=get_child_paths(first=classification_name, paths=annotation_input, divider=divider),
-                ontology_index=ontology_index
+                answer_paths=get_child_paths(first=classification_name, paths=annotation_input, divider=divider),
+                ontology_index=ontology_index,
+                divider=divider
             )
         )
     return ndjson       
 
-def classification_builder(classification_path:str, child_paths:list, ontology_index:dict):
+def classification_builder(classification_path:str, answer_paths:list, ontology_index:dict, divider:str="///"):
     """ Given a classification path and all its child paths, constructs an ndjson.
         If the classification answer's paths have nested classifications, will recursuively call this function.
     Args:
@@ -102,22 +107,59 @@ def classification_builder(classification_path:str, child_paths:list, ontology_i
     Returns:
         
     """
-    classification_name = classification_path.split(divider)[0]
-    classification_type = ontology_index[classification_name]["type"]
+    # classification_path = "tool///classification" or "classification"
+    # answer_paths = ["answer///question_1///answer_1///question_1_1///answer_1_1", "answer///question_2///answer_1", "answer///question_2///answer_2"]
+    c_type = ontology_index[classification_path]["type"]
+    # classification_name = "classification"
+    c_name = classification_path.split(divider)[-1] if divider in classification_path else classification_path
     classification_ndjson = {
-        "name" : classification_name
+        "name" : c_name
     }
-    if classification_type == "radio":
-        if divider in 
-        classification_answer = child_paths[0].split(divider)[0] if divider in child_paths[0] else child_paths[0]
-        classification_ndjson["answer"]["name"] = classification_answer
-        if len(classification_path.split(divider)) > 2:
-            classification_ndjson["answer"]["classifications"] = []
+    if c_type == "radio":
+        answer_name = pull_first_name_from_paths(name_paths=answer_paths, divider=divider)[0]
+        classification_ndjson["answer"] = {
+            "name" : answer_name
+        }
+        n_c_paths = get_child_paths(first=answer_name, name_paths=answer_paths, divider=divider)
+        n_c_names = pull_first_name_from_paths(name_paths=n_c_paths, divider=divider)
+        for n_c_name in n_c_names:
+            if n_c_name:
+                if "classifications" not in classification_ndjson["answer"].keys():
+                    classification_ndjson["answer"]["classifications"] = []
+                n_a_paths = get_child_paths(first=n_c_name, paths=n_c_paths, divider=divider)  
+                classification_ndjson["answer"]["classifications"].append(
+                    classification_builder(
+                        classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
+                        answer_paths=n_a_paths,
+                        ontology_index=ontology_index,
+                        divider=divider
+                    )
+                )
     elif classification_type == "checklist":
-        
+        classification_ndjson["answers"] = []
+        answer_names = pull_first_name_from_paths(name_paths=answer_paths, divider=divider)
+        for answer_name in answer_names:
+            answer_ndjson = {
+                "name" : answer_name
+            }
+            n_c_paths = get_child_paths(first=answer_name, name_paths=answer_paths, divider=divider)
+            n_c_names = pull_first_name_from_paths(name_paths=n_c_paths, divider=divider)
+            for n_c_name in n_c_names:
+                if n_c_name:
+                    if "classifications" not in answer_ndjson.keys():
+                        answer_ndjson["classifications"] = []
+                    n_a_paths = get_child_paths(first=n_c_name, paths=n_c_paths, divider=divider) 
+                    answer_ndjson["answer"]["classifications"].append(
+                        classification_builder(
+                            classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
+                            answer_paths=n_a_paths,
+                            ontology_index=ontology_index,
+                            divider=divider                            
+                        )
+                    )
     else:
-        classification_ndjson["answer"] = child_paths[0]
-    return classification_ndjson    
+        classification_ndjson["answer"] = answer_paths[0]
+    return classification_ndjson
 
 def pull_first_name_from_paths(name_paths:list, divider:str="///"):
     """ Pulls the first name from every name path in a list a divider-delimited name paths
@@ -146,7 +188,7 @@ def get_child_paths(first, name_paths, divider:str="///"):
         if path.startswith(first):
             child_path = ""
             for name in path.split(divider)[1:]:
-                child_path += name+divider
+                child_path += str(name)+str(divider)
             child_path = child_path[:-len(divider)] 
             child_paths.append(child_path)
     return child_paths                                                     
