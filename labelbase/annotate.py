@@ -30,52 +30,6 @@ def create_ndjsons(data_row_id:str, annotation_values:list, annotation_type:str,
           annotation_type=annotation_type, ontology_index=ontology_index, divider=divider
         ))
     return ndjsons
-  
-def remove_first_from_paths(name_paths:list, divider:str="///"):
-    """ Removes the first name from every name path in a list a divider-delimited name paths
-    Args:
-        name_paths          :   Required (list) - List of name paths
-        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas     
-    Returns:
-        List of name paths with the first name from said path removed
-    """
-    updated_name_paths = []
-    for name_path in name_paths:
-        names = name_path.split(divider)[1:]
-        updated_name_path = ""
-        for name in names:
-            updated_name_path += name+divider
-        updated_name_path = updated_name_path[:-len(divider)]  
-        updated_name_paths.append(updated_name_path)
-    return updated_name_paths
-
-def pull_first_from_paths(name_paths:list, divider:str="///"):
-    """ Pulls the first name from every name path in a list a divider-delimited name paths
-    Args:
-        name_paths          :   Required (list) - List of name paths
-        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas     
-    Returns:
-        List of unique first names from a given name path
-    """    
-    firsts = []
-    for name_path in name_paths:
-        firsts.append(str(name_path.split(divider)[0]))
-    return list(set(firsts))
-
-def pull_children_paths(first, name_paths, divider:str="///"):
-    """ From a list of name paths, returns only the name paths that are children of the first name provided
-    Args
-        first               :   Required (str) - The parent feature name you want to find paths for
-        name_paths          :   Required (list) - List of name paths
-        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas             
-    Returns
-        List of name paths that have first name provided
-    """
-    relevant_paths = []
-    for path in name_paths:
-        if path.startswith(first):
-            relevant_paths.append(path)
-    return relevant_paths
 
 def ndjson_builder(data_row_id:str, annotation_input:list, annotation_type:str, ontology_index:dict, divider:str="///"):
     """
@@ -189,3 +143,48 @@ def build_answer_ndjson(name_paths:list, parent_path:str, ontology_index:dict, d
             return_ndjson["classifications"].append(nested_class_ndjson)
     return return_ndjson
     
+def remove_first_from_paths(name_paths:list, divider:str="///"):
+    """ Removes the first name from every name path in a list a divider-delimited name paths
+    Args:
+        name_paths          :   Required (list) - List of name paths
+        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas     
+    Returns:
+        List of name paths with the first name from said path removed
+    """
+    updated_name_paths = []
+    for name_path in name_paths:
+        names = name_path.split(divider)[1:]
+        updated_name_path = ""
+        for name in names:
+            updated_name_path += name+divider
+        updated_name_path = updated_name_path[:-len(divider)]  
+        updated_name_paths.append(updated_name_path)
+    return updated_name_paths
+
+def pull_first_from_paths(name_paths:list, divider:str="///"):
+    """ Pulls the first name from every name path in a list a divider-delimited name paths
+    Args:
+        name_paths          :   Required (list) - List of name paths
+        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas     
+    Returns:
+        List of unique first names from a given name path
+    """    
+    firsts = []
+    for name_path in name_paths:
+        firsts.append(str(name_path.split(divider)[0]))
+    return list(set(firsts))
+
+def pull_children_paths(first, name_paths, divider:str="///"):
+    """ From a list of name paths, returns only the name paths that are children of the first name provided
+    Args
+        first               :   Required (str) - The parent feature name you want to find paths for
+        name_paths          :   Required (list) - List of name paths
+        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas             
+    Returns
+        List of name paths that have first name provided
+    """
+    relevant_paths = []
+    for path in name_paths:
+        if path.startswith(first):
+            relevant_paths.append(path)
+    return relevant_paths
