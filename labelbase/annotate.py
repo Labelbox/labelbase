@@ -33,7 +33,7 @@ def create_ndjsons(data_row_id:str, annotation_values:list, ontology_index:dict,
     return ndjsons
 
 def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, divider:str="///"):
-    """
+    """ Returns an ndjson of an annotation given a list of values - the values needed differ depending on the annotation type
     Args:
         data_row_id         :   Required (str) - Labelbox Data Row ID
         annotation_input    :   Required (list) - List that corresponds to a single annotation for a label in the following format
