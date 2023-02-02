@@ -69,7 +69,7 @@ def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, 
         elif annotation_type in ["polygon", "line"]:
             ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[1]]     
         elif annotation_type == "point":
-            ndjson[annotation_type] {"x":annotation_input[1],"y":annotation_input[2]}
+            ndjson[annotation_type] = {"x":annotation_input[1],"y":annotation_input[2]}
         elif annotation_type == "mask":
             ndjson[annotation_type] = {"instanceURI":annotation_input[1],"colorRGB":annotation_input[2]}
         else: # Only one left is named-entity 
