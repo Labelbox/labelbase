@@ -58,7 +58,7 @@ def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, 
     top_level_name = annotation_input[0] if divider not in annotation_input[0] else annotation_input[0].split(divider)[0]   
     ndjson = {
         "uuid" : str(uuid.uuid4()),
-        "dataRow" : {"id":data_row_id}}
+        "dataRow" : {"id":data_row_id}
     }  
     annotation_type = ontology_index[nested_class_name_path]["type"]
     # Catches tools
