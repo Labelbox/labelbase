@@ -195,7 +195,7 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
         ndjson.update(
             classification_builder(
                 classification_path=top_level_name, 
-                answer_paths=get_child_paths(first=classification_name, paths=annotation_input, divider=divider),
+                answer_paths=get_child_paths(first=top_level_name, paths=annotation_input, divider=divider),
                 ontology_index=ontology_index,
                 divider=divider
             )
