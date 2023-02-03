@@ -179,18 +179,17 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
             ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
             ndjson["classifications"] = []
-            for classification_name_paths in annotation_input[1]:
-                classification_names = pull_first_name_from_paths(classification_name_paths, divider=divider)
-                for classification_name in classification_names:
-                    classification_path = f"{top_level_name}{divider}{classification_name}"
-                    ndjson["classifications"].append(
-                        classification_builder(
-                            classification_path=classification_path,
-                            answer_paths=get_child_paths(first=classification_path, name_paths=annotation_input[1], divider=divider),
-                            ontology_index=ontology_index,
-                            divider=divider
-                        )
+            classification_names = pull_first_name_from_paths(name_paths=annotation_input[1], divider=divider)
+            for classification_name in classification_names:
+                classification_path = f"{top_level_name}{divider}{classification_name}"
+                ndjson["classifications"].append(
+                    classification_builder(
+                        classification_path=classification_path,
+                        answer_paths=get_child_paths(first=classification_path, name_paths=annotation_input[1], divider=divider),
+                        ontology_index=ontology_index,
+                        divider=divider
                     )
+                )
     # Otherwise, the top level feature is a classification
     else:
         ndjson.update(
