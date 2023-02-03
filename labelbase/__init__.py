@@ -1,5 +1,5 @@
 name = "labelbase"
-__version__ = "0.0.48"
+__version__ = "0.0.51"
 
 from labelbase import converters
 from labelbase.uploader import *
