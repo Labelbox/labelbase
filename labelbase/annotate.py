@@ -21,14 +21,25 @@ def get_leaf_paths(export_classifications:list, schema_to_name_path:dict, divide
         return name_paths    
     name_paths = []
     for cla in export_classifications:
-        if "answers" in cla.keys():
-            for answer in cla["answers"]:
-                name_paths.append(schema_to_name_path[answer["schemaId"]])
-        if "answer" in cla.keys():
-            if type(cla["answer"]) == str:
-                name_paths.append(schema_to_name_path[cla["schemaId"]]+divider+cla["answer"])
-            else:
-                name_paths.append(schema_to_name_path[cla["answer"]["schemaId"]]) 
+        if type(cla) == dict:
+            if "answers" in cla.keys():
+                for answer in cla["answers"]:
+                    name_paths.append(schema_to_name_path[answer["schemaId"]])
+            if "answer" in cla.keys():
+                if type(cla["answer"]) == str:
+                    name_paths.append(schema_to_name_path[cla["schemaId"]]+divider+cla["answer"])
+                else:
+                    name_paths.append(schema_to_name_path[cla["answer"]["schemaId"]]) 
+        else:
+            for c in cla:
+                if "answers" in c.keys():
+                    for answer in c["answers"]:
+                        name_paths.append(schema_to_name_path[answer["schemaId"]])
+                if "answer" in c.keys():
+                    if type(c["answer"]) == str:
+                        name_paths.append(schema_to_name_path[c["schemaId"]]+divider+c["answer"])
+                    else:
+                        name_paths.append(schema_to_name_path[c["answer"]["schemaId"]])                 
     root = {}
     for input_path in name_paths:
         parts = input_path.split(divider)
