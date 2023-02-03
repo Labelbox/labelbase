@@ -182,10 +182,11 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
             for classification_name_paths in annotation_input[1]:
                 classification_names = pull_first_name_from_paths(classification_name_paths, divider=divider)
                 for classification_name in classification_names:
+                    classification_path = f"{top_level_name}{divider}{classification_name}"
                     ndjson["classifications"].append(
                         classification_builder(
-                            classification_path=f"{top_level_name}{divider}{classification_name}",
-                            child_paths=get_child_paths(first=classification_name, name_paths=annotation_input[1], divider=divider),
+                            classification_path=classification_path,
+                            answer_paths=get_child_paths(first=classification_path, name_paths=annotation_input[1], divider=divider),
                             ontology_index=ontology_index,
                             divider=divider
                         )
@@ -195,12 +196,12 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
         ndjson.update(
             classification_builder(
                 classification_path=top_level_name, 
-                answer_paths=get_child_paths(first=top_level_name, name_paths=annotation_input, divider=divider),
+                answer_paths=annotation_input,
                 ontology_index=ontology_index,
                 divider=divider
             )
         )
-    return ndjson       
+    return ndjson    
 
 def classification_builder(classification_path:str, answer_paths:list, ontology_index:dict, divider:str="///"):
     """ Given a classification path and all its child paths, constructs an ndjson.
@@ -210,10 +211,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
     Returns:
         
     """
-    # classification_path = "tool///classification" or "classification"
-    # answer_paths = ["answer///question_1///answer_1///question_1_1///answer_1_1", "answer///question_2///answer_1", "answer///question_2///answer_2"]
     c_type = ontology_index[classification_path]["type"]
-    # classification_name = "classification"
     c_name = classification_path.split(divider)[-1] if divider in classification_path else classification_path
     classification_ndjson = {
         "name" : c_name
@@ -252,7 +250,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                     if "classifications" not in answer_ndjson.keys():
                         answer_ndjson["classifications"] = []
                     n_a_paths = get_child_paths(first=n_c_name, name_paths=n_c_paths, divider=divider) 
-                    answer_ndjson["answer"]["classifications"].append(
+                    answer_ndjson["classifications"].append(
                         classification_builder(
                             classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
                             answer_paths=n_a_paths,
@@ -260,6 +258,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                             divider=divider                            
                         )
                     )
+            classification_ndjson["answers"].append(answer_ndjson)
     else:
         classification_ndjson["answer"] = answer_paths[0]
     return classification_ndjson
@@ -294,4 +293,4 @@ def get_child_paths(first, name_paths, divider:str="///"):
                 child_path += str(name)+str(divider)
             child_path = child_path[:-len(divider)] 
             child_paths.append(child_path)
-    return child_paths             
+    return child_paths      
