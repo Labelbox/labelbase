@@ -238,7 +238,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                         divider=divider
                     )
                 )
-    elif classification_type == "checklist":
+    elif c_type == "checklist":
         classification_ndjson["answers"] = []
         answer_names = pull_first_name_from_paths(name_paths=answer_paths, divider=divider)
         for answer_name in answer_names:
