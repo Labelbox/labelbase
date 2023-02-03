@@ -90,7 +90,7 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 annotation_value = [obj["instanceURI"], [0,0,0]]
             if "classifications" in obj.keys():
                 nested_classification_name_paths = get_leaf_paths(
-                    export_classifications=classifications, 
+                    export_classifications=obj["classifications"], 
                     schema_to_name_path=schema_to_name_path,
                     divider=divider
                 )     
