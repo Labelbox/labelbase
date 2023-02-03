@@ -44,23 +44,23 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             { key = annotation_type + divider + annotation_name  :  value = [annotation_value, list_of_nested_name_paths]}
         Each accepted annotation type and the expected output annotation value is listed below:
             For tools:
-                bbox          :   [[top, left, height, width], [nested_classification_name_paths], [top, left, height, width], [nested_classification_name_paths]]
-                polygon       :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                line          :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                point         :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
-                mask          :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
-                named-entity  :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
+                bbox            :   [[top, left, height, width], [nested_classification_name_paths], [top, left, height, width], [nested_classification_name_paths]]
+                polygon         :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                point           :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
+                mask            :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
+                named-entity    :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
             For classifications:
-                radio         :   [[name_paths]]
-                check         :   [[name_paths]]
-                text          :   [[name_paths]] -- the last string in a text name path is the text value itself
+                radio           :   [[answer_name_paths]]
+                check           :   [[answer_name_paths]]
+                text            :   [[answer_name_paths]] -- the last string in a text name path is the text value itself
     Args:    
-        label_dict      
+        label_dict              :   Required (dict) - Dictionary representation of a label from project.export_labels(download=True)
         ontology_index          :   Required (dict) - Dictionary created from running:
-                                          labelbase.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+                                            labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
         schema_to_name_path     :   Required (dict) - Dictionary where {key=schema_id : value=feature_name_path} created from running:
-                                            labelbase.get_ontology_schema_to_name_path(ontology, divider=divider, invert=False, detailed=False)
-        divider                 :   Optional (str): String delimiter for name paths        
+                                            labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=False, detailed=False)
+        divider                 :   Optional (str) - String delimiter for name paths        
     Returns:        
         Dictionary with one key per annotation class in a given label in the specified format written above
     """
@@ -113,66 +113,57 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             flat_label[f'{annotation_type}{divider}{classification_name}'] = [[name_path for name_path in child_paths]]
     return flat_label
 
-def create_ndjsons(data_row_id:str, annotation_values:list, ontology_index:dict, divider:str="///"):
+def create_ndjsons(data_row_id:str,  top_level_name:str, annotation_inputs:list, ontology_index:dict, divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation
+        Each accepted annotation type and the expected input annotation value is listed below:
+            For tools:
+                bbox            :   [[top, left, height, width], [nested_classification_name_paths], [top, left, height, width], [nested_classification_name_paths]]
+                polygon         :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                point           :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
+                mask            :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
+                named-entity    :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
+            For classifications:
+                radio           :   [[answer_name_paths]]
+                check           :   [[answer_name_paths]]
+                text            :   [[answer_name_paths]] -- the last string in a text name path is the text value itself
     Args:
         data_row_id             :   Required (str) - Labelbox Data Row ID
-        annotation_values       :   Required (list) - List of annotation value lists where 1 list element must correspond to the following format:
-                                    For tools:
-                                        bbox          :   [tool_name, [top, left, height, width], [nested_classification_name_paths]]
-                                        polygon       :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                                        line          :   [tool_name, [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                                        point         :   [tool_name, [x, y], [nested_classification_name_paths]]
-                                        mask          :   [tool_name, [URL, colorRGB], [nested_classification_name_paths]]
-                                        named-entity  :   [tool_name, [start, end], [nested_classification_name_paths]]
-                                    For classifications:
-                                        radio         :   [name_paths]
-                                        check         :   [name_paths]
-                                        text          :   [name_paths] -- the last string in a text name path is the text value itself
-        annotation_values   :   Required (list) - List of annotation values for a given data row in the following format 
-        annotation_type     :   Required (str) - Type of annotation in question - must be a string of one of the above options
-        ontology_index      :   Required (dict) - Dictionary created from running:
-                                                  labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
-        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas                                                  
+        top_level_name          :   Required (str) - Name of the top-level tool or classification        
+        annotation_inputs       :   Required (list) - List of annotation value lists where 1 list element must correspond to the following format:        
+        annotation_type         :   Required (str) - Type of annotation in question - must be a string of one of the above options
+        ontology_index          :   Required (dict) - Dictionary created from running:
+                                            labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+        divider                 :   Optional (str) - String delimiter for name paths        
     """
     ndjsons = []
-    for annotation_value in annotation_values:
+    for annotation_input in annotation_inputs:
         ndjsons.append(ndjson_builder(
             data_row_id=data_row_id, 
-            annotation_value=annotation_value, 
+            top_level_name=top_level_name,
+            annotation_input=annotation_input, 
             ontology_index=ontology_index, 
             divider=divider
         ))
     return ndjsons
 
-def ndjson_builder(data_row_id:str, annotation_input:list, ontology_index:dict, divider:str="///"):
+def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, ontology_index:dict, divider:str="///"):
     """ Returns an ndjson of an annotation given a list of values - the values needed differ depending on the annotation type
     Args:
-        data_row_id         :   Required (str) - Labelbox Data Row ID
-        annotation_input    :   Required (list) - List that corresponds to a single annotation for a label in the following format
-                                    For tools:
-                                        bbox          :   [[top, left, height, width], [nested_classification_name_paths], [top, left, height, width], [nested_classification_name_paths]]
-                                        polygon       :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                                        line          :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                                        point         :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
-                                        mask          :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
-                                        named-entity  :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
-                                    For classifications:
-                                        radio         :   [[name_paths]]
-                                        check         :   [[name_paths]]
-                                        text          :   [[name_paths]] -- the last string in a text name path is the text value itself
-        ontology_index      :   Required (dict) - Dictionary created from running:
-                                                  labelbase.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
-        divider             :   Optional (str) - String delimiter for all name keys generated for parent/child schemas                                                  
+        data_row_id             :   Required (str) - Labelbox Data Row ID
+        top_level_name          :   Required (str) - Name of the top-level tool or classification        
+        annotation_input        :   Required (list) - List that corresponds to a single annotation for a label in the specified format
+        ontology_index          :   Required (dict) - Dictionary created from running:
+                                            labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+        divider                 :   Optional (str) - String delimiter for name paths        
     Returns
         NDJSON representation of an annotation
     """
-    top_level_name = annotation_input[0] if divider not in annotation_input[0] else annotation_input[0].split(divider)[0]   
+    annotation_type = ontology_index[top_level_name]["type"]
     ndjson = {
         "uuid" : str(uuid.uuid4()),
         "dataRow" : {"id":data_row_id}
     }  
-    annotation_type = ontology_index[nested_class_name_path]["type"]
     # Catches tools
     if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
         ndjson["name"] = top_level_name
