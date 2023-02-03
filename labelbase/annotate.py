@@ -199,6 +199,7 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
                         classification_path=classification_path,
                         answer_paths=get_child_paths(first=classification_path, name_paths=annotation_input[1], divider=divider),
                         ontology_index=ontology_index,
+                        tool_name=top_level_name,
                         divider=divider
                     )
                 )
@@ -214,7 +215,7 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
         )
     return ndjson    
 
-def classification_builder(classification_path:str, answer_paths:list, ontology_index:dict, divider:str="///"):
+def classification_builder(classification_path:str, answer_paths:list, ontology_index:dict, tool_name:str="", divider:str="///"):
     """ Given a classification path and all its child paths, constructs an ndjson.
         If the classification answer's paths have nested classifications, will recursuively call this function.
     Args:
@@ -222,7 +223,8 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
     Returns:
         
     """
-    c_type = ontology_index[classification_path]["type"]
+    index_input = f"{tool_name}{divider}{classification_path}" if tool_name else classification_path
+    c_type = ontology_index[index_input]["type"]
     c_name = classification_path.split(divider)[-1] if divider in classification_path else classification_path
     classification_ndjson = {
         "name" : c_name
@@ -244,6 +246,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                         classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
                         answer_paths=n_a_paths,
                         ontology_index=ontology_index,
+                        tool_name=tool_name,
                         divider=divider
                     )
                 )
@@ -266,6 +269,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                             classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
                             answer_paths=n_a_paths,
                             ontology_index=ontology_index,
+                            tool_name=tool_name,
                             divider=divider                            
                         )
                     )
