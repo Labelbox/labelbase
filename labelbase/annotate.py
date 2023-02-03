@@ -168,24 +168,24 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
     if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
         ndjson["name"] = top_level_name
         if annotation_type == "bbox":
-            ndjson[annotation_type] = {"top":annotation_input[1][0],"left":annotation_input[1][1],"height":annotation_input[1][2],"width":annotation_input[1][3]}
+            ndjson[annotation_type] = {"top":annotation_input[0][0],"left":annotation_input[0][1],"height":annotation_input[0][2],"width":annotation_input[0][3]}
         elif annotation_type in ["polygon", "line"]:
-            ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[1]]     
+            ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[0]]     
         elif annotation_type == "point":
-            ndjson[annotation_type] = {"x":annotation_input[1][0],"y":annotation_input[1][1]}
+            ndjson[annotation_type] = {"x":annotation_input[0][0],"y":annotation_input[0][1]}
         elif annotation_type == "mask":
-            ndjson[annotation_type] = {"instanceURI":annotation_input[1][0],"colorRGB":annotation_input[1][1]}
+            ndjson[annotation_type] = {"instanceURI":annotation_input[0][0],"colorRGB":annotation_input[0][1]}
         else: # Only one left is named-entity 
-            ndjson["location"] = {"start" : annotation_input[1][0],"end":annotation_input[1][1]}
-        if annotation_input[2]:
+            ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
+        if annotation_input[1]:
             ndjson["classifications"] = []
-            for classification_name_paths in annotation_input[2]:
+            for classification_name_paths in annotation_input[1]:
                 classification_names = pull_first_name_from_paths(classification_name_paths, divider=divider)
                 for classification_name in classification_names:
                     ndjson["classifications"].append(
                         classification_builder(
                             classification_path=f"{top_level_name}{divider}{classification_name}",
-                            child_paths=get_child_paths(first=classification_name, paths=annotation_input[-1], divider=divider),
+                            child_paths=get_child_paths(first=classification_name, name_paths=annotation_input[1], divider=divider),
                             ontology_index=ontology_index,
                             divider=divider
                         )
@@ -195,7 +195,7 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
         ndjson.update(
             classification_builder(
                 classification_path=top_level_name, 
-                answer_paths=get_child_paths(first=top_level_name, paths=annotation_input, divider=divider),
+                answer_paths=get_child_paths(first=top_level_name, name_paths=annotation_input, divider=divider),
                 ontology_index=ontology_index,
                 divider=divider
             )
@@ -229,7 +229,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
             if n_c_name:
                 if "classifications" not in classification_ndjson["answer"].keys():
                     classification_ndjson["answer"]["classifications"] = []
-                n_a_paths = get_child_paths(first=n_c_name, paths=n_c_paths, divider=divider)  
+                n_a_paths = get_child_paths(first=n_c_name, name_paths=n_c_paths, divider=divider)  
                 classification_ndjson["answer"]["classifications"].append(
                     classification_builder(
                         classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
@@ -251,7 +251,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                 if n_c_name:
                     if "classifications" not in answer_ndjson.keys():
                         answer_ndjson["classifications"] = []
-                    n_a_paths = get_child_paths(first=n_c_name, paths=n_c_paths, divider=divider) 
+                    n_a_paths = get_child_paths(first=n_c_name, name_paths=n_c_paths, divider=divider) 
                     answer_ndjson["answer"]["classifications"].append(
                         classification_builder(
                             classification_path=f"{classification_path}{divider}{answer_name}{divider}{n_c_name}",
