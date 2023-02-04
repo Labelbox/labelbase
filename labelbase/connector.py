@@ -2,8 +2,27 @@ from labelbox import Client as labelboxClient
 from labelbox.schema.data_row_metadata import DataRowMetadataKind
 from labelbase.ontology import _refresh_metadata_ontology
 
-def validate_indexes(client:labelboxClient, table, get_columns_function, get_unique_values_function, divider:str="///" verbose:bool=False, extra_client=None):
-    """ Given a table of columns with the right naming formats, creates a metadata_index, attachment_index, and annotation_index
+def validate_columns(client:labelboxClient, table, get_columns_function, get_unique_values_function, 
+                     divider:str="///" verbose:bool=False, extra_client=None):
+    """ Given a table of columns with the right naming formats, does the following:
+    
+    1. Identifies a `row_data_col` name, `global_key_col` name, and an `external_id_col` name
+    
+    - `row_data_col` must be identified as the column with the name `row_data`
+    - `global_key_col` defaults to `row_data_col` if not identified
+    - `external_id_col` defaults to `global_key_col` if not identified
+    
+    2. Creates a metadata_index, attachment_index, and annotation_index - validates that the column names are in the right format:
+    
+    - Metadata columns must be `metadata{divider}metadata_type{divider}metadata_field_name`
+        - metadata_type must be one of |"enum", "string", "datetime", "number"| (not case sensitive)
+        
+    - Attachment columns must be `attachment{divider}attachment_type{divider}column_name` (column_name is not relevant for attachment columns
+        - metadata_type must be one of |"IMAGE", "VIDEO", "RAW_TEXT", "HTML", "TEXT_URL"| (not case sensitive)
+        
+    - Metadata columns must be `annotation{divider}annotation_type{divider}top_level_name`
+        - annotation_type must be one of |"bbox", "polygon", "point", "mask", "line", "named-entity", "radio", "checklist", "text"| (not case sensitive)
+        
     Args:
         client                      :   Required (labelbox.client.Client) - Labelbox Client object    
         table                       :   Required - Input user table    
@@ -19,6 +38,9 @@ def validate_indexes(client:labelboxClient, table, get_columns_function, get_uni
     metadata_index = {}
     attachment_index = {}
     annotation_index = {}
+    row_data_col = ""
+    global_key_col = ""
+    external_id_col = ""
     accepted_metadata_types = ["enum", "string", "datetime", "number"]
     accepted_attachment_types = ["IMAGE", "VIDEO", "RAW_TEXT", "HTML", "TEXT_URL"]
     accepted_annotation_types = ["bbox", "polygon", "point", "mask", "line", "named-entity", "radio", "checklist", "text"]
@@ -38,6 +60,17 @@ def validate_indexes(client:labelboxClient, table, get_columns_function, get_uni
                 if column_type.lower() not in accepted_annotation_types:
                     raise ValueError(f"Invalid value in annotation column name {column_name} - must be `annotation{divider}` followed by one of the following: |{accepted_annotation_types}| followed by `{divider}top_level_feature_name`")
                 annotation_index[header] = column_type.lower()
+        else:
+            if column_name == "row_data":
+                row_data_col = "row_data"
+            if column_name == "global_key":
+                global_key_col = "global_key"
+            if column_name == "external_id":
+                external_id_col = "external_id"            
+    if not row_data_col:
+        raise ValueError(f"No `row_data` column found - please provide a column of row data URls with the colunn name `row_data`")
+    global_key_col = global_key_col if global_key_col else row_data_col
+    external_id_col = external_id_col if external_id_col else global_key_col
     lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
     metadata_types = {
       "enum" : DataRowMetadataKind.enum, 
