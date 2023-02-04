@@ -41,25 +41,6 @@ def _refresh_metadata_ontology(client:labelboxClient):
     lb_metadata_names = [field['name'] for field in lb_mdo._get_ontology()]
     return lb_mdo, lb_metadata_names
 
-def _enforce_metadata_index(metadata_index:dict, verbose:bool=False):
-    """ Ensure your metadata_index is in the proper format. Returns True if it is, and False if it is not
-    Args:
-        metadata_index      :   Required (dict) - Dictionary where {key=metadata_field_name : value=metadata_type}
-        verbose             :   Required (bool) - If True, prints information about code execution
-    Returns:
-        True if the metadata_index is valid, False if not
-    """
-    if metadata_index:
-        for metadata_field_name in metadata_index:
-            if metadata_index[metadata_field_name] not in ["enum", "string", "datetime", "number"]:
-                raise ValueError(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
-        if verbose:
-            print(f"Valid metadata_index")
-    else:
-        if verbose:
-            print(f"No metadata_index provided")
-    return
-
 def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add_column_function, get_unique_values_function, metadata_index:dict={}, verbose:bool=False, extra_client=None):
     """ Ensures Labelbox's Metadata Ontology and your input have all necessary metadata fields / columns given a metadata_index
     Args:
