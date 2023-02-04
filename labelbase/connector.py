@@ -31,6 +31,11 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
         verbose                     :   Optional (bool) - If True, prints information about code execution
         extra_client                :   Optional - If relevant, the input get_columns_function / get_unique_values_function required other client object
     Returns:
+        row_data_col                :   Raises an error if no `row_data` column is provided
+        global_key_col              :   Defaults to row_data_col
+        external_id_col             :   Defaults to global_key_col
+        project_id_col              :   Returns "" if no `project_id` column is provided
+        dataset_id_col              :   Returns "" if no `dataset_id` column is provided
         metadata_index              :   Dictonary where {key=column_name : value=metadata_type}
         attachment_index            :   Dictonary where {key=column_name : value=attachment_type}
         annotation_index            :   Dictonary where {key=column_name : value=annotation_type}
@@ -41,6 +46,8 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
     row_data_col = ""
     global_key_col = ""
     external_id_col = ""
+    project_id_col = ""
+    dataset_id_col = ""
     accepted_metadata_types = ["enum", "string", "datetime", "number"]
     accepted_attachment_types = ["IMAGE", "VIDEO", "RAW_TEXT", "HTML", "TEXT_URL"]
     accepted_annotation_types = ["bbox", "polygon", "point", "mask", "line", "named-entity", "radio", "checklist", "text"]
@@ -66,7 +73,11 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
             if column_name == "global_key":
                 global_key_col = "global_key"
             if column_name == "external_id":
-                external_id_col = "external_id"            
+                external_id_col = "external_id"   
+            if column_name == "project_id":
+                project_id_col = "project_id"   
+            if column_name == "dataset_id":
+                dataset_id_col = "dataset_id" 
     if not row_data_col:
         raise ValueError(f"No `row_data` column found - please provide a column of row data URls with the colunn name `row_data`")
     global_key_col = global_key_col if global_key_col else row_data_col
@@ -89,4 +100,4 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
                 lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
     if "lb_integration_source" not in lb_metadata_names:
         lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
-    return row_data_col, global_key_col, external_id_col, metadata_index, attachment_index, annotation_index
+    return row_data_col, global_key_col, external_id_col, project_id_col, dataset_id_col, metadata_index, attachment_index, annotation_index
