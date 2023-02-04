@@ -66,7 +66,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
             elif input_type.lower() == "annotation":
                 if column_type.lower() not in accepted_annotation_types:
                     raise ValueError(f"Invalid value in annotation column name {column_name} - must be `annotation{divider}` followed by one of the following: |{accepted_annotation_types}| followed by `{divider}top_level_feature_name`")
-                annotation_index[header] = column_type.lower()
+                annotation_index[column_name] = header
         else:
             if column_name == "row_data":
                 row_data_col = "row_data"
