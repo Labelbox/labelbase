@@ -45,33 +45,15 @@ def validate_indexes(client:labelboxClient, table, get_columns_function, get_uni
       "datetime" : DataRowMetadataKind.datetime, 
       "number" : DataRowMetadataKind.number
     }
+    # If a metadata field name was passed in that doesn't exist, create it in Labelbox
     if metadata_index:
         for metadata_field_name in metadata_index.keys():
+            metadata_string_type = metadata_index[metadata_field_name]
             if metadata_field_name not in lb_metadata_names:
-                enum_options = get_unique_values_function(
-                  table=table, 
-                  metadata_field_name, extra_client=extra_client) if metadata_type == "enum" else []
+                enum_options = get_unique_values_function(table=table, column_name=metadata_field_name, extra_client=extra_client) if metadata_string_type == "enum" else []
+                if verbose:
+                    print(f"Creating Labelbox metadata field with name {metadata_field_name} of type {metadata_string_type}")
+                lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
     if "lb_integration_source" not in lb_metadata_names:
         lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
-    for metadata_field_name in 
-                
     return metadata_index, attachment_index, annotation_index
-
-def _enforce_metadata_index(metadata_index:dict, verbose:bool=False):
-    """ Ensure your metadata_index is in the proper format. Returns True if it is, and False if it is not
-    Args:
-        metadata_index      :   Required (dict) - Dictionary where {key=metadata_field_name : value=metadata_type}
-        verbose             :   Required (bool) - If True, prints information about code execution
-    Returns:
-        True if the metadata_index is valid, False if not
-    """
-    if metadata_index:
-        for metadata_field_name in metadata_index:
-            if metadata_index[metadata_field_name] not in ["enum", "string", "datetime", "number"]:
-                raise ValueError(f"Invalid value in metadata_index for key {metadata_field_name} - must be `enum`, `string`, `datetime`, or `number`")
-        if verbose:
-            print(f"Valid metadata_index")
-    else:
-        if verbose:
-            print(f"No metadata_index provided")
-    return  
