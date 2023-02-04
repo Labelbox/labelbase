@@ -89,4 +89,4 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
                 lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
     if "lb_integration_source" not in lb_metadata_names:
         lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
-    return metadata_index, attachment_index, annotation_index
+    return row_data_col, global_key_col, external_id_col, metadata_index, attachment_index, annotation_index
