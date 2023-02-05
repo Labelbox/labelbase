@@ -1,6 +1,6 @@
 from labelbox import Client as labelboxClient
 from labelbox.schema.data_row_metadata import DataRowMetadataKind
-from labelbase.ontology import _refresh_metadata_ontology
+from labelbase.metadata import _refresh_metadata_ontology
 
 def validate_columns(client:labelboxClient, table, get_columns_function, get_unique_values_function, 
                      divider:str="///", verbose:bool=False, extra_client=None):
