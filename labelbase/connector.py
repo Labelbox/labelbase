@@ -3,7 +3,7 @@ from labelbox.schema.data_row_metadata import DataRowMetadataKind
 from labelbase.ontology import _refresh_metadata_ontology
 
 def validate_columns(client:labelboxClient, table, get_columns_function, get_unique_values_function, 
-                     divider:str="///" verbose:bool=False, extra_client=None):
+                     divider:str="///", verbose:bool=False, extra_client=None):
     """ Given a table of columns with the right naming formats, does the following:
     
     1. Identifies a `row_data_col` name, `global_key_col` name, and an `external_id_col` name
