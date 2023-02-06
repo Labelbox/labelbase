@@ -7,4 +7,4 @@ from labelbase.metadata import *
 from labelbase.ontology import *
 from labelbase.dataset import *
 from labelbase.annotate import *
-from labelbase.connector import *
+from labelbase import connector
