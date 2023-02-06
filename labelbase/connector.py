@@ -97,7 +97,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
                 enum_options = get_unique_values_function(table=table, column_name=metadata_field_name, extra_client=extra_client) if metadata_string_type == "enum" else []
                 if verbose:
                     print(f"Creating Labelbox metadata field with name {metadata_field_name} of type {metadata_string_type}")
-                lb_mdo.create_schema(name=metadata_field_name, kind=conversion[metadata_type], options=enum_options)
+                lb_mdo.create_schema(name=metadata_field_name, kind=metadata_types[metadata_type], options=enum_options)
     if "lb_integration_source" not in lb_metadata_names:
         lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
     return row_data_col, global_key_col, external_id_col, project_id_col, dataset_id_col, metadata_index, attachment_index, annotation_index
