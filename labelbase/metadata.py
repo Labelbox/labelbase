@@ -104,7 +104,7 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
             return_value = None                  
     elif metadata_type == "number": # For numbers, it's ints as strings
         try:
-            return_value = str(int(row_value))
+            return_value = str(int(metadata_value))
         except:
             return_value = None                  
     elif metadata_type == "string": 
