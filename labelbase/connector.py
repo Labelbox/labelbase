@@ -36,7 +36,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
         external_id_col             :   Defaults to global_key_col
         project_id_col              :   Returns "" if no `project_id` column is provided
         dataset_id_col              :   Returns "" if no `dataset_id` column is provided
-        metadata_index              :   Dictonary where {key=column_name : value=metadata_type}
+        metadata_index              :   Dictonary where {key=metadata_field_name : value=metadata_type}
         attachment_index            :   Dictonary where {key=column_name : value=attachment_type}
         annotation_index            :   Dictonary where {key=column_name : value=annotation_type}
     """
@@ -62,7 +62,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
             elif input_type.lower() == "attachment":
                 if column_type.upper() not in accepted_attachment_types:
                     raise ValueError(f"Invalid value in attachment column name {column_name} - must be `attachment{divider}` followed by one of the following: |{accepted_attachment_types}| followed by `{divider}column_name`")
-                attachment_index[header] = column_type.upper()
+                attachment_index[column_name] = column_type.upper()
             elif input_type.lower() == "annotation":
                 if column_type.lower() not in accepted_annotation_types:
                     raise ValueError(f"Invalid value in annotation column name {column_name} - must be `annotation{divider}` followed by one of the following: |{accepted_annotation_types}| followed by `{divider}top_level_feature_name`")
