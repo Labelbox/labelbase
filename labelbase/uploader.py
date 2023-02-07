@@ -203,7 +203,8 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
         return "No annotation upload attempted"
 
 
-def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, priority:int=5, batch_name:str=str(uuid.uuid4()), batch_size:int=1000):
+def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, priority:int=5, 
+                          batch_name:str=str(uuid.uuid4()), batch_size:int=1000, verbose:bool=False):
     """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
     Args:
         client                      :   Required (labelbox.client.Client) - Labelbox Client object
@@ -211,18 +212,24 @@ def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, 
         priority                    :   Optinoal (int) - Between 1 and 5, what priority to give to data row batches sent to projects
         batch_name                  :   Optional (str) : Prefix to add to batch name - script generates batch number, which it adds to said prefix
         batch_size                  :   Optional (int) : Size of batches to send to project
+        verbose                     :   Optional (bool) - If True, prints information about code execution        
     Returns:
-        True
+        Empty list if successful, errors if unsuccessful
     """
     try:
         batch_number = 0
         for project_id in project_id_to_batch_dict:
+            data_row_ids = project_id_to_batch_dict[project_id]
+            if verbose:
+                print(f"Sending {len(data_row_ids)} data rows to project with ID {project_id}")
             project = client.get_project(project_id)
-            for i in range(0, len(project_id_to_batch_dict[project_id]), batch_size):
+            for i in range(0, len(data_row_ids), batch_size):
                 batch_number += 1
-                data_row_ids = project_id_to_batch_dict[project_id]
                 subset = data_row_ids[i:] if i+batch_size >= len(data_row_ids) else data_row_ids[i:i+batch_size]
                 project.create_batch(name=f"{batch_name}-{batch_number}", data_rows=subset)
-        return True  
+        if verbose:
+            print(f"All data rows have been batched to the specified project(s)"
+        return []  
     except Exception as e:
+        print(f"Batching data rows to project unsuccessful: {e}")
         return e
