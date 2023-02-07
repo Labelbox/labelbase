@@ -24,7 +24,9 @@ def check_global_keys(client:labelboxClient, global_keys:list):
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
         global_keys             :   Required (list(str)) - List of global key strings
     Returns:
-        True if global keys are available, False if not
+        GQL payload             :   Dictionary where {keys="accessDeniedGlobalKeys", "deletedDataRowGlobalKeys", "fetchedDataRows", "notFoundGlobalKeys"}
+        existing_dr_to_gk       :   Dictinoary where {key=data_row_id : value=global_key} for data rows in use by global keys passed in. 
+                                    If this = {}, then all global keys are free to use
     """
     query_keys = [str(x) for x in global_keys]
     # Create a query job to get data row IDs given global keys
@@ -34,8 +36,22 @@ def check_global_keys(client:labelboxClient, global_keys:list):
     res = None
     while not res:
         query_job_id = client.execute(query_str_1, {"global_keys":global_keys})['dataRowsForGlobalKeys']['jobId']
-        res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']
-    return res   
+        res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
+    # If there are deleted data rows holding global keys, clear them and re-do the check
+    if res["deletedDataRowGlobalKeys"]:
+        client.clear_global_keys(res["deletedDataRowGlobalKeys"])   
+        res = None
+        while not res:
+            query_job_id = client.execute(query_str_1, {"global_keys":global_keys})['dataRowsForGlobalKeys']['jobId']
+            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']  
+    # Create a dictionary where {key=data_row_id : value=global_key}
+    existing_dr_to_gk = {}
+    for i in range(0, len(res["fetchedDataRows"])):
+        data_row_id = res["fetchedDataRows"][i]["id"]
+        global_key = global_keys_list[i]
+        if data_row_id:
+            existing_dr_to_gk[data_row_id] = global_key             
+    return res, existing_dr_to_gk
 
 def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_upload_dict:dict, 
                            skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
@@ -54,11 +70,27 @@ def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_uploa
         dataset = client.get_dataset(dataset_id)
         global_key_to_upload_dict = dataset_to_global_key_to_upload_dict[dataset_id]
         global_keys_list = list(global_key_to_upload_dict.keys())
-        client.clear_global_keys(global_keys_list)
-        payload = check_global_keys(client, global_keys_list)
-        if payload:
+        payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list)
+        if payload["deletedDataRowGlobalKeys"]:
+            client.clear_global_keys(res["deletedDataRowGlobalKeys"])        
+        payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list)
+        existing_data_row_to_global_key = {payload["fetchedDataRows"][i]["id"]:global_keys_list[i] for i in range(0, len(payload["fetchedDataRows"]))}        
+        while existing_data_row_to_global_key
+        if payload["fetchedDataRows"]:
+            if skip_duplicates:
+                print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
+                    elif verbose:
+                        print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
             loop_counter = 0
-            while len(payload['notFoundGlobalKeys']) != len(global_keys_list):
+
+            
+            for global_key in global_key_to_upload_dict:
+                if global_key in existing_data_row_to_global_key.values():
+                    if skip_duplicates:
+                        print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
+                new_global_key = 
+            
+        while len(payload['notFoundGlobalKeys']) != len(global_keys_list):
                 # If global keys are taken by existing data rows, either skip them on upload or update the global key to have a "_{loop_counter}" suffix
                 if payload['fetchedDataRows']:
                     loop_counter += 1                    
