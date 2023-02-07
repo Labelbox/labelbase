@@ -35,7 +35,7 @@ def get_ontology_schema_to_name_path(ontology, divider:str="///", invert:bool=Fa
                     next_layer = node["classifications"]
                     node_type = node["tool"]
                     node_type = "bbox" if node_type == "rectangle" else node_type
-                    node_type = "mask" if node_type == "raster-segmentation" else node_type
+                    node_type = "mask" if node_type in ["superpixel", "raster-segmentation"] else node_type 
                     node_kind = "tool"   
                 elif "instructions" in node.keys():
                     node_name = node["instructions"]
