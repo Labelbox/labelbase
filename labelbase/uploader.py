@@ -142,7 +142,7 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
     return e, updated_dict
 
 def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:dict, import_name:str=str(uuid.uuid4()), 
-                             how:str="import", batch_size:int=20000, verbose=False):
+                             how:str="import", batch_size:int=10000, verbose=False):
     """ Batch imports labels given a batch size via MAL or LabelImport
     Args:
         client                      :   Required (labelbox.client.Client) - Labelbox Client object
@@ -158,17 +158,19 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
     if how.lower() == "mal":
         from labelbox import MALPredictionImport as upload_protocol
         if verbose:
-            print(f"Uploading {len(annotations)} annotations non-submitted pre-labels (MAL)")            
+            print(f"Uploading annotations as non-submitted pre-labels (MAL)")            
     elif how.lower() == "import":
         from labelbox import LabelImport as upload_protocol
         if verbose:
-            print(f"Uploading {len(annotations)} annotations as submitted labels (Label Import)")
+            print(f"Uploading annotations as submitted labels (Label Import)")
     else:
         return f"No annotation upload attempted - import method must be wither 'mal' or 'import' - received value {how}"
     batch_number = 0        
     # For each project
     if project_id_to_upload_dict:
         for project_id in project_id_to_upload_dict:
+            if verbose:
+                print(f"Uploading {len(project_id_to_upload_dict[project_id]} annotations to project with ID {project_id}"
             # Create a dicationary where {key=data_row_id : value=list_of_annotations}
             data_row_id_to_upload_dict = {}
             for annotation in project_id_to_upload_dict[project_id]:
