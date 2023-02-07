@@ -103,9 +103,9 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
                     del global_key_to_upload_dict[gk]
                 break
             else: # Create new suffix, replace in global_key_to_upload_dict, refresh existing_data_row_to_global_key
+                loop_counter += 1 # Count the amount of attempts - this is used as a suffix                
                 if verbose:
                     print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
-                loop_counter += 1 # Count the amount of attempts - this is used as a suffix
                 for gk in existing_data_row_to_global_key.values():
                     gk_root = gk if loop_counter == 1 else gk[:-(len(divider)+len(str(loop_counter)))] # Root global key, no suffix
                     new_gk = f"{gk_root}{divider}{loop_counter}" # New global key with suffix
