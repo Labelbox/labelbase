@@ -125,8 +125,8 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             flat_label[f'{annotation_type}{divider}{classification_name}'] = [[[name_path for name_path in child_paths]]]
     return flat_label
 
-def create_ndjsons(data_row_id:str,  top_level_name:str, annotation_inputs:list, ontology_index:dict, divider:str="///"):
-    """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation
+def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, divider:str="///"):
+    """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation -- note the data row ID is not added here
         Each accepted annotation type and the expected input annotation value is listed below:
             For tools:
                 bbox            :   [[top, left, height, width], [nested_classification_name_paths], [top, left, height, width], [nested_classification_name_paths]]
@@ -151,7 +151,6 @@ def create_ndjsons(data_row_id:str,  top_level_name:str, annotation_inputs:list,
     ndjsons = []
     for annotation_input in annotation_inputs:
         ndjsons.append(ndjson_builder(
-            data_row_id=data_row_id, 
             top_level_name=top_level_name,
             annotation_input=annotation_input, 
             ontology_index=ontology_index, 
@@ -159,10 +158,9 @@ def create_ndjsons(data_row_id:str,  top_level_name:str, annotation_inputs:list,
         ))
     return ndjsons
 
-def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, ontology_index:dict, divider:str="///"):
+def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, divider:str="///"):
     """ Returns an ndjson of an annotation given a list of values - the values needed differ depending on the annotation type
     Args:
-        data_row_id             :   Required (str) - Labelbox Data Row ID
         top_level_name          :   Required (str) - Name of the top-level tool or classification        
         annotation_input        :   Required (list) - List that corresponds to a single annotation for a label in the specified format
         ontology_index          :   Required (dict) - Dictionary created from running:
@@ -173,8 +171,7 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
     """
     annotation_type = ontology_index[top_level_name]["type"]
     ndjson = {
-        "uuid" : str(uuid.uuid4()),
-        "dataRow" : {"id":data_row_id}
+        "uuid" : str(uuid.uuid4())
     }  
     # Catches tools
     if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
@@ -217,10 +214,6 @@ def ndjson_builder(data_row_id:str, top_level_name:str, annotation_input:list, o
 def classification_builder(classification_path:str, answer_paths:list, ontology_index:dict, tool_name:str="", divider:str="///"):
     """ Given a classification path and all its child paths, constructs an ndjson.
         If the classification answer's paths have nested classifications, will recursuively call this function.
-    Args:
-        
-    Returns:
-        
     """
     index_input = f"{tool_name}{divider}{classification_path}" if tool_name else classification_path
     c_type = ontology_index[index_input]["type"]
