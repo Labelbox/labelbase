@@ -106,7 +106,7 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
                 if verbose:
                     print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
                 loop_counter += 1 # Count the amount of attempts - this is used as a suffix
-                for gk in existing_data_row_to_global_key.keys():
+                for gk in existing_data_row_to_global_key.values():
                     gk_root = gk if loop_counter == 1 else gk[:-(len(divider)+len(str(loop_counter)))] # Root global key, no suffix
                     new_gk = f"{gk_root}{divider}{loop_counter}" # New global key with suffix
                     upload_value = global_key_to_upload_dict[gk] # Grab data row upload
@@ -181,7 +181,7 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
             # Create ndjson batches at the data row level            
             data_row_list = list(data_row_id_to_upload_dict.keys())
             if verbose:
-                print(f"Uploading {len(annotations)} annotations to {len(data_row_list)} data rows to project with ID {project_id}")             
+                print(f"Uploading {len(annotations)} annotations for {len(data_row_list)} data rows to project with ID {project_id}")             
             for i in range(0, len(data_row_list), batch_size):
                 data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
                 upload = []
