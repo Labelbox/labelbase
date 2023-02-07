@@ -64,8 +64,10 @@ def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_uploa
         batch_size                              :   Optional (int) - Upload batch size, 20,000 is recommended
         verbose                                 :   Optional (bool) - If True, prints information about code execution
     Returns:
-        Upload errors
+        upload_errors                           :   Either a list Labelbox upload errors or an empty list if no errors
+        updated_dict                            :   Updated dataset_to_global_key_to_upload_dict if global keys were removed or updated
     """
+    updated_dict = {}
     for dataset_id in dataset_to_global_key_to_upload_dict.keys():
         dataset = client.get_dataset(dataset_id)
         global_key_to_upload_dict = dataset_to_global_key_to_upload_dict[dataset_id]
@@ -74,51 +76,35 @@ def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_uploa
         if payload["deletedDataRowGlobalKeys"]:
             client.clear_global_keys(res["deletedDataRowGlobalKeys"])        
         payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list)
-        existing_data_row_to_global_key = {payload["fetchedDataRows"][i]["id"]:global_keys_list[i] for i in range(0, len(payload["fetchedDataRows"]))}        
-        while existing_data_row_to_global_key
-        if payload["fetchedDataRows"]:
-            if skip_duplicates:
-                print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
-                    elif verbose:
-                        print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
-            loop_counter = 0
-
-            
-            for global_key in global_key_to_upload_dict:
-                if global_key in existing_data_row_to_global_key.values():
-                    if skip_duplicates:
-                        print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
-                new_global_key = 
-            
-        while len(payload['notFoundGlobalKeys']) != len(global_keys_list):
-                # If global keys are taken by existing data rows, either skip them on upload or update the global key to have a "_{loop_counter}" suffix
-                if payload['fetchedDataRows']:
-                    loop_counter += 1                    
-                    if verbose and skip_duplicates:
-                        print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected")         
-                    elif verbose:
-                        print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")   
-                    for i in range(0, len(payload['fetchedDataRows'])):
-                        current_global_key = str(global_keys_list[i])
-                        # Add (or replace) a suffix to your working global_key
-                        new_global_key = f"{current_global_key[:-len(divider)]}{divider}{loop_counter}" if current_global_key[-len(divider):-1] == divider else f"{current_global_key}{divider}{loop_counter}"
-                        if payload['fetchedDataRows'][i] != "":                            
-                            if skip_duplicates:
-                                del global_key_to_upload_dict[current_global_key] # Delete this data_row_upload_dict from your upload_dict
-                            else:
-                                new_upload_dict = global_key_to_upload_dict[current_global_key] # Grab the existing data_row_upload_dict
-                                del global_key_to_upload_dict[current_global_key] # Delete this data_row_upload_dict from your upload_dict
-                                new_upload_dict['global_key'] = new_global_key # Put new global key values in this data_row_upload_dict
-                                global_key_to_upload_dict[new_global_key] = new_upload_dict # Add your new data_row_upload_dict to your upload_dict                               
-                    global_keys_list = list(global_key_to_upload_dict.keys())
-                    payload = check_global_keys(client, global_keys_list) 
-        upload_list = list(global_key_to_upload_dict.values())
+        loop_counter = 0
+        while existing_data_row_to_global_key: # If existing data rows are using gloval keys
+            if skip_duplicates: # Drop from global_key_to_upload_dict if we're skipping duplicates
+                if verbose:
+                    print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
+                for gk in existing_data_row_to_global_key.keys():
+                    del global_key_to_upload_dict[gk]
+                break
+            else: # Create new suffix, replace in global_key_to_upload_dict, refresh existing_data_row_to_global_key
+                if verbose:
+                    print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
+                loop_counter += 1 # Count the amount of attempts - this is used as a suffix
+                for gk in existing_data_row_to_global_key.keys():
+                    gk_root = gk if loop_counter == 1 else gk[:-(len(divider)+len(str(loop_counter)))] # Root global key, no suffix
+                    new_gk = f"{gk_root}{divider}{loop_counter}" # New global key with suffix
+                    data_row_upload = global_key_to_upload_dict[gk] # Grab data row upload
+                    data_row_upload["global_key"] = new_gk # Replace the global key in our upload value
+                    del global_key_to_upload_dict[gk] # Delete global key that's in use already
+                    global_key_to_upload_dict[new_gk] = data_row_upload # Replace with new global key
+                    global_keys_list = list(global_key_to_upload_dict.keys()) # Make a new global key list
+                    payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list) # Refresh existing_data_row_to_global_key
+        updated_dict[dataset_id] = global_key_to_upload_dict # Since we may have dropped/replaced some global keys, we will return a modified index            
+        upload_list = list(global_key_to_upload_dict.values()) 
         if verbose:
             print(f'Beginning data row upload for dataset ID {dataset_id}: uploading {len(upload_list)} data rows')
         batch_number = 0
         for i in range(0,len(upload_list),batch_size):
-            batch_number += 1
-            batch = upload_list[i:] if i + batch_size >= len(upload_list) else upload_list[i:i+batch_size]
+            batch_number += 1 # Count uploads
+            batch = upload_list[i:] if i + batch_size >= len(upload_list) else upload_list[i:i+batch_size] # Determine batch
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
             task = dataset.create_data_rows(batch)
@@ -126,14 +112,16 @@ def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_uploa
             errors = task.errors
             if errors:
                 if verbose: 
-                    print(f'Error: upload batch number {batch_number} unsuccessful')
-                return errors
+                    print(f'Error: Upload batch number {batch_number} unsuccessful')
+                e = errors
+                break
             else:
                 if verbose: 
-                    print(f'Success: upload batch number {batch_number} complete')  
+                    print(f'Success: Upload batch number {batch_number} successful')  
+                e = []
     if verbose:
-        print(f'Upload complete')
-    return task
+        print(f'Upload complete - all data rows uploaded')
+    return e, updated_dict
 
 def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:dict, import_name:str=str(uuid.uuid4()), 
                              how:str="import", batch_size:int=20000, verbose=False):
