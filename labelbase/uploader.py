@@ -179,9 +179,9 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
                 else:
                     data_row_id_to_upload_dict[data_row_id].append(annotation)                   
             # Create ndjson batches at the data row level            
-            data_row_list = len(list(data_row_id_to_upload_dict.keys()))
+            data_row_list = list(data_row_id_to_upload_dict.keys())
             if verbose:
-                print(f"Uploading {len(annotations)} annotations to {data_row_list} data rows to project with ID {project_id}")             
+                print(f"Uploading {len(annotations)} annotations to {len(data_row_list)} data rows to project with ID {project_id}")             
             for i in range(0, data_row_list, batch_size):
                 data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
                 upload = []
