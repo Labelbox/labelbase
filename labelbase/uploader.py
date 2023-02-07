@@ -228,7 +228,7 @@ def batch_rows_to_project(client:labelboxClient, project_id_to_batch_dict:dict, 
                 subset = data_row_ids[i:] if i+batch_size >= len(data_row_ids) else data_row_ids[i:i+batch_size]
                 project.create_batch(name=f"{batch_name}-{batch_number}", data_rows=subset)
         if verbose:
-            print(f"All data rows have been batched to the specified project(s)"
+            print(f"All data rows have been batched to the specified project(s)")
         return []  
     except Exception as e:
         print(f"Batching data rows to project unsuccessful: {e}")
