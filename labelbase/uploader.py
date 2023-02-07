@@ -110,9 +110,9 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
                     gk_root = gk if loop_counter == 1 else gk[:-(len(divider)+len(str(loop_counter)))] # Root global key, no suffix
                     new_gk = f"{gk_root}{divider}{loop_counter}" # New global key with suffix
                     upload_value = global_key_to_upload_dict[gk] # Grab data row upload
-                    data_row_upload["data_row"]["global_key"] = new_gk # Replace the global key in our data row upload value
+                    upload_value["data_row"]["global_key"] = new_gk # Replace the global key in our data row upload value
                     del global_key_to_upload_dict[gk] # Delete global key that's in use already
-                    global_key_to_upload_dict[new_gk] = data_row_upload # Replace with new global key
+                    global_key_to_upload_dict[new_gk] = upload_value # Replace with new global key
                 global_keys_list = list(global_key_to_upload_dict.keys()) # Make a new global key list
                 payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list) # Refresh existing_data_row_to_global_key
         updated_dict[dataset_id] = global_key_to_upload_dict # Since we may have dropped/replaced some global keys, we will return a modified index            
