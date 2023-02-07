@@ -101,7 +101,7 @@ def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_uploa
                     print(f'Success: upload batch number {batch_number} complete')  
     if verbose:
         print(f'Upload complete')
-    return []
+    return task
 
 def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:dict, import_name:str=str(uuid.uuid4()), 
                              how:str="import", batch_size:int=20000, verbose=False):
