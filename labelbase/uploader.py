@@ -48,7 +48,7 @@ def check_global_keys(client:labelboxClient, global_keys:list):
     existing_dr_to_gk = {}
     for i in range(0, len(res["fetchedDataRows"])):
         data_row_id = res["fetchedDataRows"][i]["id"]
-        global_key = global_keys_list[i]
+        global_key = global_keys[i]
         if data_row_id:
             existing_dr_to_gk[data_row_id] = global_key             
     return res, existing_dr_to_gk
