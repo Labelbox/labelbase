@@ -54,6 +54,7 @@ def batch_create_data_rows(client:labelboxClient, dataset_to_global_key_to_uploa
         dataset = client.get_dataset(dataset_id)
         global_key_to_upload_dict = dataset_to_global_key_to_upload_dict[dataset_id]
         global_keys_list = list(global_key_to_upload_dict.keys())
+        client.clear_global_keys(global_keys_list)
         payload = check_global_keys(client, global_keys_list)
         if payload:
             loop_counter = 0
