@@ -170,7 +170,7 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
     if project_id_to_upload_dict:
         for project_id in project_id_to_upload_dict:
             if verbose:
-                print(f"Uploading {len(project_id_to_upload_dict[project_id]} annotations to project with ID {project_id}"
+                print(f"Uploading {len(project_id_to_upload_dict[project_id]} annotations to project with ID {project_id}")
             # Create a dicationary where {key=data_row_id : value=list_of_annotations}
             data_row_id_to_upload_dict = {}
             for annotation in project_id_to_upload_dict[project_id]:
