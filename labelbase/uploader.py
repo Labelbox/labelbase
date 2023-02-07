@@ -182,7 +182,7 @@ def batch_upload_annotations(client:labelboxClient, project_id_to_upload_dict:di
             data_row_list = list(data_row_id_to_upload_dict.keys())
             if verbose:
                 print(f"Uploading {len(annotations)} annotations to {len(data_row_list)} data rows to project with ID {project_id}")             
-            for i in range(0, data_row_list, batch_size):
+            for i in range(0, len(data_row_list), batch_size):
                 data_row_batch = data_row_list[i:] if i+batch_size >= len(data_row_list) else data_row_list[i:i+batch_size]
                 upload = []
                 for annotation in project_id_to_upload_dict[project_id]:
