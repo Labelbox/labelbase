@@ -43,13 +43,17 @@ def export_and_flatten_labels(
         print(f"Flattening labels...")
     for label in export:
         if not label['Skipped']:
-            res = flatten_label(label_dict=label, ontology_index=ontology_index, schema_to_name_path=schema_to_name_path, divider=divider)
-            flat_label = {f"annotation{divider}{str(key)}" : val for key, val in res.items()}
-            flat_label["row_data"] = label["Labeled Data"]
-            flat_label["data_row_id"] = label["DataRow ID"]
-            flat_label["external_id"] = label["External ID"]
-            flat_label["global_keu"] = label["Global Key"]
-            flat_label["label_id"] = label["ID"]
+            flat_label = {
+                "global_key" : label["Global Key"],
+                "row_data" : label["Labeled Data"],
+                "data_row_id" : label["DataRow ID"],
+                "label_id" : label["ID"],
+                "external_id" : label["External ID"]
+                
+            }
+            res = flatten_label(label_dict=label, ontology_index=ontology_index, schema_to_name_path=schema_to_name_path, divider=divider)            
+            for key, val in res.items()}:
+                flat_label[f"annotation{divider}{str(key)}"] = val
             if include_agreement:
                 flat_label["consensus_score"] = label["Agreement"]
             if include_performance:
