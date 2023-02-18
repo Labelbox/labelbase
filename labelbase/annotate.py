@@ -108,7 +108,7 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 return_paths = get_child_paths(first=obj["title"], name_paths=nested_classification_name_paths, divider=divider)
             else:
                 return_paths = []
-            flat_label[column_name][0].append([annotation_value, return_paths])
+            flat_label[column_name].append([annotation_value, return_paths])
     if classifications:
         leaf_paths = get_leaf_paths(
             export_classifications=classifications, 
