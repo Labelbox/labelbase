@@ -86,7 +86,7 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             annotation_type = "bbox" if annotation_type == "rectangle" else annotation_type
             column_name = f'{annotation_type}{divider}{obj["title"]}'           
             if column_name not in flat_label.keys():
-                flat_label[column_name] = [[]]
+                flat_label[column_name] = []
             if "bbox" in obj.keys():
                 annotation_value = [obj["bbox"]["top"], obj["bbox"]["left"], obj["bbox"]["height"], obj["bbox"]["width"]]
             elif "polygon" in obj.keys():
