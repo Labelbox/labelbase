@@ -149,6 +149,7 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
         divider                 :   Optional (str) - String delimiter for name paths        
     """
     ndjsons = []
+    print(annotation_inputs)
     for annotation_input in annotation_inputs:
         ndjsons.append(ndjson_builder(
             top_level_name=top_level_name,
