@@ -122,7 +122,7 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
         for classification_name in classification_names:
             annotation_type = ontology_index[classification_name]["type"]
             child_paths = get_child_paths(first=classification_name, name_paths=leaf_paths, divider=divider)
-            flat_label[f'{annotation_type}{divider}{classification_name}'] = [[[name_path for name_path in child_paths]]]
+            flat_label[f'{annotation_type}{divider}{classification_name}'] = [[name_path for name_path in child_paths]]
     return flat_label
 
 def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, divider:str="///"):
