@@ -4,7 +4,35 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 
-def get_metadata_schema_to_name_key(client:labelboxClient, lb_mdo=False, divider="///", invert=False):
+def get_metadata_schema_to_type(client:labelboxClient, lb_mdo=False, invert:bool=False):
+    """ Creates a dictionary where {key=metadata_schema_id: value=metadata_type} 
+    - metadata_type either "string" "enum" "datetime" or "number"
+    Args:
+        client              :   Required (labelbox.client.Client) - Labelbox Client object    
+        lb_mdo              :   Optional (labelbox.schema.data_row_metadata.DataRowMetadataOntology) - Labelbox metadata ontology
+        divider             :   Optional (str) - String separating parent and enum option metadata values
+        invert              :   Optional (bool) - If True, inverts the dictionary to be where {key=metadata_name_key: value=metadata_schema_id}
+    Returns:
+        Dictionary where {key=metadata_schema_id: value=metadata_type} - or the inverse
+    """    
+    metadata_schema_to_type = {}
+    lb_mdo = client.get_data_row_metadata_ontology() if not lb_mdo else lb_mdo
+    for field in lb_mdo._get_ontology():
+        metadata_type = ""
+        if "enum" in field["kind"].lower():
+            metadata_type = "enum"
+        if "string" in field["kind"].lower():
+            metadata_type = "string"
+        if "datetime" in field["kind"].lower():
+            metadata_type = "datetime"
+        if "number" in field["kind"].lower():
+            metadata_type = "number"
+        if metadata_type:
+            metadata_schema_to_type[field["id"]] = metadata_type
+    return_value = metadata_schema_to_type if not invert else {v:k for k,v in metadata_schema_to_type.items()}
+    return return_value
+
+def get_metadata_schema_to_name_key(client:labelboxClient, lb_mdo=False, divider="///", invert:bool=False):
     """ Creates a dictionary where {key=metadata_schema_id: value=metadata_name_key} 
     - name_key is name for all metadata fields, and for enum options, it is "parent_name{divider}child_name"
     Args:
