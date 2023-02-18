@@ -150,6 +150,7 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
     """
     ndjsons = []
     if type(annotation_inputs) == list:
+        print(annotation_inputs)
         for annotation_input in annotation_inputs:
             ndjsons.append(ndjson_builder(
                 top_level_name=top_level_name,
@@ -157,6 +158,8 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
                 ontology_index=ontology_index, 
                 divider=divider
             ))
+    else:
+        print(f"Not a list: {annotation_inputs}"
     return ndjsons
 
 def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, divider:str="///"):
