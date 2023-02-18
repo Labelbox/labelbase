@@ -140,7 +140,7 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
     else: # For datetime, it's an isoformat string
         if type(metadata_value) == str:
             return_value = parser.parse(metadata_value).astimezone(pytz.utc).replace(tzinfo=None)
-        elif type(metadata_value) == datetime.datetime:
+        elif type(metadata_value) == datetime:
             return_value = metadata_value.astimezone(pytz.utc).replace(tzinfo=None)
         else:
             return_value = None       
