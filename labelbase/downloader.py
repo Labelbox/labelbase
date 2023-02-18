@@ -49,7 +49,6 @@ def export_and_flatten_labels(
                 "data_row_id" : label["DataRow ID"],
                 "label_id" : label["ID"],
                 "external_id" : label["External ID"]
-                
             }
             res = flatten_label(label_dict=label, ontology_index=ontology_index, schema_to_name_path=schema_to_name_path, divider=divider)            
             for key, val in res.items()}:
