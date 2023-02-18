@@ -48,6 +48,7 @@ def export_and_flatten_labels(
             flat_label["row_data"] = label["Labeled Data"]
             flat_label["data_row_id"] = label["DataRow ID"]
             flat_label["external_id"] = label["External ID"]
+            flat_label["global_keu"] = label["Global Key"]
             flat_label["label_id"] = label["ID"]
             if include_agreement:
                 flat_label["consensus_score"] = label["Agreement"]
