@@ -4,13 +4,18 @@ from labelbase.ontology import get_ontology_schema_to_name_path
 from labelbase.metadata import get_metadata_schema_to_name_key, get_metadata_schema_to_type
 from labelbase.annotate import flatten_label
 
-def export_and_flatten_labels(client:labelboxClient, project, include_metadata:bool=True, include_performance:bool=True, include_agreement:bool=False, verbose:bool=False, divider="///"):
+def export_and_flatten_labels(
+    client:labelboxClient, project, include_metadata:bool=True, include_performance:bool=True, 
+    include_agreement:bool=False, verbose:bool=False, divider="///"):
     """ Exports and flattens labels from a Labelbox Project
     Args:
-        project             :   Required (str / lablebox.Project) - Labelbox Project ID or lablebox.Project object to export labels from
-        include_metadata    :   Optional (bool) - If included, exports metadata fields
-        verbose             :   Optional (bool) - If True, prints details about code execution; if False, prints minimal information
-        divider             :   Optional (str) - String delimiter for schema name keys and suffix added to duplocate global keys 
+        client:                 :   Required (labelbox.Client) - Labelbox Client object
+        project                 :   Required (str / lablebox.Project) - Labelbox Project ID or lablebox.Project object to export labels from
+        include_metadata        :   Optional (bool) - If included, exports metadata fields
+        include_performance     :   Optional (bool) - If included, exports labeling performance
+        include_agreement       :   Optional (bool) - If included, exports consensus scores       
+        verbose                 :   Optional (bool) - If True, prints details about code execution; if False, prints minimal information
+        divider                 :   Optional (str) - String delimiter for schema name keys and suffix added to duplocate global keys 
     Returns:
         List of dictionaries where { key = column_name : value = row_value }
     """
