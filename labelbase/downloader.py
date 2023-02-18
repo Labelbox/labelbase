@@ -51,7 +51,7 @@ def export_and_flatten_labels(
                 "external_id" : label["External ID"]
             }
             res = flatten_label(label_dict=label, ontology_index=ontology_index, schema_to_name_path=schema_to_name_path, divider=divider)            
-            for key, val in res.items()}:
+            for key, val in res.items():
                 flat_label[f"annotation{divider}{str(key)}"] = val
             if include_agreement:
                 flat_label["consensus_score"] = label["Agreement"]
