@@ -159,7 +159,7 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
                 divider=divider
             ))
     else:
-        print(f"Not a list: {annotation_inputs}"
+        print(f"Not a list: {annotation_inputs}")
     return ndjsons
 
 def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, divider:str="///"):
