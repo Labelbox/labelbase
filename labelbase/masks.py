@@ -5,11 +5,12 @@ import requests
 from labelbox.data import annotation_types as lb_types
 from labelbox.data.serialization import NDJsonConverter
 
-def mask_to_bytes(input:str, method:str="url", color:int=0, output:str="png"):
+def mask_to_bytes(input:str, method:str="url", color=(0,0,0), output:str="png"):
     """ Given a mask input, returns a png bytearray of said mask a a dictionary
     Args:
         input     :   Required (str) - URL of a mask
         method    :   Required (str) - Either "url" or "array" - determines how you want the input treated
+        color     :   Required (arr or int) - The color of your mask in your input value
         output    :   Required (str) - Either "array" or "png" - determines how you want the data returned
     Returns:
         Mask as a numpy array or as string png bytes
@@ -21,12 +22,23 @@ def mask_to_bytes(input:str, method:str="url", color:int=0, output:str="png"):
         raise ValueError(f'Downloading bytes requires output method to be either a "png" or a "array" - received method {method}')     
     # Either download a mask URL or ensure the shape of your numpy array
     if method == "url":
-        binary_mask = np.array(Image.open(BytesIO(requests.get(input).content)))[:,:,0]
+        np_mask = np.array(Image.open(BytesIO(requests.get(input).content)))[:,:,:3]
     else:
-        binary_mask = input if len(input.shape)==2 else input[:,:,0]
+        if len(input.shape) == 3:
+            np_mask = input
+        elif len(input.shape) == 2:
+            np_mask = [input, input, input]
+        else:
+            raise ValueError(f"Input segmentation mask arrays must either be 2D or 3D - shape of input mask: {input.shape}")
+    if type(color) == int:
+        np_color = (color, color, color)
+    elif len(color) == 3:
+        np_color = color
+    else:
+        raise ValueError(f"The specified color of your segmentation mask must either be a number (for 2D masks) or an RGB code (for 3D masks) - {color}")
     # Return either a numpy array or a png byte string
     if output == "array":
-        return binary_mask
+        return np_mask
     else:
         mask_label = lb_types.Label(
             data=lb_types.ImageData(uid=""),
@@ -34,7 +46,7 @@ def mask_to_bytes(input:str, method:str="url", color:int=0, output:str="png"):
                 lb_types.ObjectAnnotation(
                     name="", 
                     value=lb_types.Mask(
-                        mask=lb_types.MaskData.from_2D_arr(binary_mask), 
+                        mask=lb_types.MaskData(arr=np_mask), 
                         color=color
                     )
                 )
@@ -42,4 +54,4 @@ def mask_to_bytes(input:str, method:str="url", color:int=0, output:str="png"):
         )
         # Convert back into ndjson
         mask_png = list(NDJsonConverter.serialize([mask_label]))[0]["mask"]["png"]
-        return png_mask
+        return mask_png
