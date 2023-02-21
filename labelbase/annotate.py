@@ -150,8 +150,6 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
         divider                 :   Optional (str) - String delimiter for name paths        
     """
     ndjsons = []
-    print(annotation_inputs)    
-    print(type(annotation_inputs))
     if type(annotation_inputs) == str:
         if annotation_inputs:
             try:
