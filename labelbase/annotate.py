@@ -150,13 +150,8 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
         divider                 :   Optional (str) - String delimiter for name paths        
     """
     ndjsons = []
-    if type(annotation_inputs) == str:
-        if annotation_inputs:
-            try:
-                print(f'Converting string to list')
-                annotation_inputs = json.loads(annotation_inputs)
-            except:
-                print(f'Failed to convert string to a list: {annotation_inputs}')
+    if (type(annotation_inputs) == str) and (annotation_inputs!=""):
+        annotation_inputs = json.loads(annotation_inputs.replace("'", '"'))
     if type(annotation_inputs) == list:
         for annotation_input in annotation_inputs:
             ndjsons.append(ndjson_builder(
