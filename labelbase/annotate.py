@@ -74,10 +74,10 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
         schema_to_name_path     :   Required (dict) - Dictionary where {key=schema_id : value=feature_name_path} created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=False, detailed=False)
-        mask_method             :   Optional (str) - Specifies your input mask data format
-                                        - "url" treats annotation input values as URLs uploads them directly
-                                        - "array" converts the annotation input values into png bytes
-                                        - "png" uploads png bytes directly                                                
+        mask_method             :   Optional (str) - Specifies your desired mask data format
+                                        - "url" leaves masks as-is
+                                        - "array" converts URLs to numpy arrays
+                                        - "png" converts URLs to png byte strings                                               
         divider                 :   Optional (str) - String delimiter for name paths        
     Returns:        
         Dictionary with one key per annotation class in a given label in the specified format written above
@@ -165,9 +165,9 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
         mask_method             :   Optional (str) - Specifies your input mask data format
-                                        - "url" treats annotation input values as URLs uploads them directly
-                                        - "array" converts the annotation input values into png bytes
-                                        - "png" uploads png bytes directly                                            
+                                        - "url" means your mask is an accessible URL (must provide color)
+                                        - "array" means your mask is a numpy array (must provide color)
+                                        - "png" means your mask value is a png-string                                       
         divider                 :   Optional (str) - String delimiter for name paths        
     """
     ndjsons = []
