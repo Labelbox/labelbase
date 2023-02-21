@@ -51,7 +51,7 @@ def get_leaf_paths(export_classifications:list, schema_to_name_path:dict, divide
             current_node = current_node[part]    
     return build_leaf_paths(root)  
 
-def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict, divider:str="///"):
+def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict, mask_method:str="url", divider:str="///"):
     """ For a label from project.export_labels(download=True), creates a flat dictionary where:
             { key = annotation_type + divider + annotation_name  :  value = [annotation_value, list_of_nested_name_paths]}
         Each accepted annotation type and the expected output annotation value is listed below:
@@ -61,6 +61,8 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
                 point           :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
                 mask            :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
+                                            OR
+                                    [[array, colorRGB], [nested_classification_name_paths], [array, colorRGB], [nested_classification_name_paths]]
                 named-entity    :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
             For classifications:
                 radio           :   [[answer_name_paths]]
@@ -72,6 +74,10 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
         schema_to_name_path     :   Required (dict) - Dictionary where {key=schema_id : value=feature_name_path} created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=False, detailed=False)
+        mask_method             :   Optional (str) - Specifies your input mask data format
+                                        - "url" treats annotation input values as URLs uploads them directly
+                                        - "array" converts the annotation input values into png bytes
+                                        - "png" uploads png bytes directly                                                
         divider                 :   Optional (str) - String delimiter for name paths        
     Returns:        
         Dictionary with one key per annotation class in a given label in the specified format written above
@@ -99,7 +105,14 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             elif "location" in obj.keys():
                 annotation_value = [obj["location"]["start"], obj["location"]["end"]]
             else:
-                annotation_value = [obj["instanceURI"], [0,0,0]]
+                if mask_method == "url":
+                    annotation_value = [obj["instanceURI"], [0,0,0]]
+                elif mask_method == "array": 
+                    array = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="array"))
+                    annotation_value = [array, [0,0,0]]
+                else:
+                    png = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="png"))
+                    annotation_value = [png, None]
             if "classifications" in obj.keys():
                 nested_classification_name_paths = get_leaf_paths(
                     export_classifications=obj["classifications"], 
@@ -126,7 +139,7 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             flat_label[f'{annotation_type}{divider}{classification_name}'] = [[name_path for name_path in child_paths]]
     return flat_label
 
-def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, divider:str="///"):
+def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, mask_method:str="url", divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation -- note the data row ID is not added here
         Each accepted annotation type and the expected input annotation value is listed below:
             For tools:
@@ -135,6 +148,10 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
                 line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
                 point           :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
                 mask            :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
+                                            OR
+                                    [[array, colorRGB], [nested_classification_name_paths], [array, colorRGB], [nested_classification_name_paths]]
+                                            OR
+                                    [[png_bytes, None], [nested_classification_name_paths], [png_bytes, None], [nested_classification_name_paths]]                                    
                 named-entity    :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
             For classifications:
                 radio           :   [[answer_name_paths]]
@@ -147,6 +164,10 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
         annotation_type         :   Required (str) - Type of annotation in question - must be a string of one of the above options
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+        mask_method             :   Optional (str) - Specifies your input mask data format
+                                        - "url" treats annotation input values as URLs uploads them directly
+                                        - "array" converts the annotation input values into png bytes
+                                        - "png" uploads png bytes directly                                            
         divider                 :   Optional (str) - String delimiter for name paths        
     """
     ndjsons = []
@@ -158,17 +179,22 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
                 top_level_name=top_level_name,
                 annotation_input=annotation_input, 
                 ontology_index=ontology_index, 
+                mask_method=mask_method,
                 divider=divider
             ))
     return ndjsons
 
-def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, divider:str="///"):
+def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, mask_method:str="url", divider:str="///"):
     """ Returns an ndjson of an annotation given a list of values - the values needed differ depending on the annotation type
     Args:
         top_level_name          :   Required (str) - Name of the top-level tool or classification        
         annotation_input        :   Required (list) - List that corresponds to a single annotation for a label in the specified format
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+        mask_method             :   Optional (str) - Specifies your input mask data format
+                                        - "url" treats annotation input values as URLs uploads them directly
+                                        - "array" converts the annotation input values into png bytes
+                                        - "png" uploads png bytes directly
         divider                 :   Optional (str) - String delimiter for name paths        
     Returns
         NDJSON representation of an annotation
@@ -187,7 +213,15 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
         elif annotation_type == "point":
             ndjson[annotation_type] = {"x":annotation_input[0][0],"y":annotation_input[0][1]}
         elif annotation_type == "mask":
-            ndjson[annotation_type] = {"instanceURI":annotation_input[0][0],"colorRGB":annotation_input[0][1]}
+            if mask_method == "url": 
+                ndjson[annotation_type] = {"instanceURI":annotation_input[0][0],"colorRGB":annotation_input[0][1]}
+            elif mask_method == "array"
+                png = labelbase.masks.mask_to_bytes(input=annotation_input[0][0], method=mask_method, color=annotation_input[0][1], output="png"))
+                ndjson[annotation_type] = {"png":png}
+            else: # Only one left is png
+                ndjson[annotation_type] = {"png":annotation_input[0][0]}
+            else: # numpy arrays
+                ndjson[annotation_type] = {"png":annotation_input[0][0]}
         else: # Only one left is named-entity 
             ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
