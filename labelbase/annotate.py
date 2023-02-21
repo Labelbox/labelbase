@@ -217,12 +217,10 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
         elif annotation_type == "mask":
             if mask_method == "url": 
                 ndjson[annotation_type] = {"instanceURI":annotation_input[0][0],"colorRGB":annotation_input[0][1]}
-            elif mask_method == "array":
+            elif mask_method == "array": # input masks as numpy arrays
                 png = labelbase.masks.mask_to_bytes(input=annotation_input[0][0], method=mask_method, color=annotation_input[0][1], output="png")
                 ndjson[annotation_type] = {"png":png}
             else: # Only one left is png
-                ndjson[annotation_type] = {"png":annotation_input[0][0]}
-            else: # numpy arrays
                 ndjson[annotation_type] = {"png":annotation_input[0][0]}
         else: # Only one left is named-entity 
             ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
