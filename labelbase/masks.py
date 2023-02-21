@@ -5,7 +5,7 @@ import requests
 from labelbox.data import annotation_types as lb_types
 from labelbox.data.serialization import NDJsonConverter
 
-def mask_to_bytes(input:str, method:str="url", color=(0,0,0), output:str="png"):
+def mask_to_bytes(input:str, method:str="url", color=(255,255,255), output:str="png"):
     """ Given a mask input, returns a png bytearray of said mask a a dictionary
     Args:
         input     :   Required (str) - URL of a mask
