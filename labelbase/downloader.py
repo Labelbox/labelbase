@@ -6,7 +6,7 @@ from labelbase.annotate import flatten_label
 
 def export_and_flatten_labels(
     client:labelboxClient, project, include_metadata:bool=True, include_performance:bool=True, 
-    include_agreement:bool=False, verbose:bool=False, divider="///"):
+    include_agreement:bool=False, verbose:bool=False, mask_method:str="png", divider="///"):
     """ Exports and flattens labels from a Labelbox Project
     Args:
         client:                 :   Required (labelbox.Client) - Labelbox Client object
@@ -15,10 +15,16 @@ def export_and_flatten_labels(
         include_performance     :   Optional (bool) - If included, exports labeling performance
         include_agreement       :   Optional (bool) - If included, exports consensus scores       
         verbose                 :   Optional (bool) - If True, prints details about code execution; if False, prints minimal information
+        mask_method             :   Optional (str) - Specifies your input mask data format
+                                        - "url" leaves masks as-is
+                                        - "array" converts URLs to numpy arrays
+                                        - "png" converts URLs to png byte strings        
         divider                 :   Optional (str) - String delimiter for schema name keys and suffix added to duplocate global keys 
     Returns:
         List of dictionaries where { key = column_name : value = row_value }
     """
+    if mask_method not in ["url", "png", "array"]:
+        raise ValueError(f"Please specify the mask_method you want to download your segmentation masks in - must be either 'url' 'png' or 'array'")
     project = project if type(project) == labelboxProject else client.get_project(project)
     if verbose:
         print(f"Exporting labels from Labelbox for project with ID {project.uid}")
@@ -50,7 +56,7 @@ def export_and_flatten_labels(
                 "label_id" : label["ID"],
                 "external_id" : label["External ID"]
             }
-            res = flatten_label(label_dict=label, ontology_index=ontology_index, schema_to_name_path=schema_to_name_path, divider=divider)            
+            res = flatten_label(label_dict=label, ontology_index=ontology_index, schema_to_name_path=schema_to_name_path, mask_method=mask_method, divider=divider)            
             for key, val in res.items():
                 flat_label[f"annotation{divider}{str(key)}"] = val
             if include_agreement:
