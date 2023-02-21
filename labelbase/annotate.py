@@ -174,7 +174,7 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
     if mask_method not in ["url", "png", "array"]:
         raise ValueError(f"Mask method must be either `url`, `png` or `array`")
     ndjsons = []
-    if (type(annotation_inputs) == str) and (annotation_inputs!=""):
+    if (type(annotation_inputs) == str) and (annotation_inputs!="") and ("[" in annotation_inputs):
         annotation_inputs = json.loads(annotation_inputs.replace("'", '"'))
     if type(annotation_inputs) == list:
         for annotation_input in annotation_inputs:
