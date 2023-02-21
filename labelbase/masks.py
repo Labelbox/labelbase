@@ -22,7 +22,8 @@ def mask_to_bytes(input:str, method:str="url", color=(0,0,0), output:str="png"):
         raise ValueError(f'Downloading bytes requires output method to be either a "png" or a "array" - received method {method}')     
     # Either download a mask URL or ensure the shape of your numpy array
     if method == "url":
-        np_mask = np.array(Image.open(BytesIO(requests.get(input).content)))[:,:,:3]
+        r = requests.get(input).content
+        np_mask = np.array(Image.open(BytesIO(r)))[:,:,:3]
     else:
         if len(input.shape) == 3:
             np_mask = input
