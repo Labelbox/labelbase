@@ -108,10 +108,10 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 if mask_method == "url":
                     annotation_value = [obj["instanceURI"], [0,0,0]]
                 elif mask_method == "array": 
-                    array = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="array"))
+                    array = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="array")
                     annotation_value = [array, [0,0,0]]
                 else:
-                    png = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="png"))
+                    png = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="png")
                     annotation_value = [png, None]
             if "classifications" in obj.keys():
                 nested_classification_name_paths = get_leaf_paths(
