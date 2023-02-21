@@ -1,5 +1,6 @@
 import uuid
 import json
+from labelbase.masks import mask_to_bytes
 
 def get_leaf_paths(export_classifications:list, schema_to_name_path:dict, divider:str="///"):
     """ Given a flat list of labelox export classifications, constructs leaf name paths given a divider
@@ -108,10 +109,10 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 if mask_method == "url":
                     annotation_value = [obj["instanceURI"], [0,0,0]]
                 elif mask_method == "array": 
-                    array = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="array")
+                    array = mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="array")
                     annotation_value = [array, [0,0,0]]
                 else:
-                    png = labelbase.masks.mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="png")
+                    png = mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="png")
                     annotation_value = [png, None]
             if "classifications" in obj.keys():
                 nested_classification_name_paths = get_leaf_paths(
@@ -218,7 +219,7 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
             if mask_method == "url": 
                 ndjson[annotation_type] = {"instanceURI":annotation_input[0][0],"colorRGB":annotation_input[0][1]}
             elif mask_method == "array": # input masks as numpy arrays
-                png = labelbase.masks.mask_to_bytes(input=annotation_input[0][0], method=mask_method, color=annotation_input[0][1], output="png")
+                png = mask_to_bytes(input=annotation_input[0][0], method=mask_method, color=annotation_input[0][1], output="png")
                 ndjson[annotation_type] = {"png":png}
             else: # Only one left is png
                 ndjson[annotation_type] = {"png":annotation_input[0][0]}
