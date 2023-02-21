@@ -170,6 +170,8 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
                                         - "png" means your mask value is a png-string                                       
         divider                 :   Optional (str) - String delimiter for name paths        
     """
+    if mask_method not in ["url", "png", "array"]:
+        raise ValueError(f"Mask method must be either `url`, `png` or `array`")
     ndjsons = []
     if (type(annotation_inputs) == str) and (annotation_inputs!=""):
         annotation_inputs = json.loads(annotation_inputs.replace("'", '"'))
