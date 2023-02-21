@@ -64,6 +64,8 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 mask            :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
                                             OR
                                     [[array, colorRGB], [nested_classification_name_paths], [array, colorRGB], [nested_classification_name_paths]]
+                                            OR
+                                    [[png_bytes, "null"], [nested_classification_name_paths], [png_bytes, "null"], [nested_classification_name_paths]]                                    
                 named-entity    :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
             For classifications:
                 radio           :   [[answer_name_paths]]
@@ -113,7 +115,7 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                     annotation_value = [array, [0,0,0]]
                 else:
                     png = mask_to_bytes(input=obj["instanceURI"], method="url", color=0, output="png")
-                    annotation_value = [png, None]
+                    annotation_value = [png, "null"]
             if "classifications" in obj.keys():
                 nested_classification_name_paths = get_leaf_paths(
                     export_classifications=obj["classifications"], 
