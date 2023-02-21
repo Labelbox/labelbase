@@ -9,3 +9,4 @@ from labelbase import ontology
 from labelbase import dataset
 from labelbase import annotate
 from labelbase import connector
+from labelbase import masks
