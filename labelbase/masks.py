@@ -48,7 +48,7 @@ def mask_to_bytes(input:str, method:str="url", color=[255,255,255], output:str="
                     name="", 
                     value=lb_types.Mask(
                         mask=lb_types.MaskData(arr=np_mask), 
-                        color=color
+                        color=np_color
                     )
                 )
             ]
