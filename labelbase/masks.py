@@ -5,7 +5,7 @@ import requests
 from labelbox.data import annotation_types as lb_types
 from labelbox.data.serialization import NDJsonConverter
 
-def mask_to_bytes(input:str, method:str="url", color=(255,255,255), output:str="png"):
+def mask_to_bytes(input:str, method:str="url", color=[255,255,255], output:str="png"):
     """ Given a mask input, returns a png bytearray of said mask a a dictionary
     Args:
         input     :   Required (str) - URL of a mask
@@ -32,7 +32,7 @@ def mask_to_bytes(input:str, method:str="url", color=(255,255,255), output:str="
         else:
             raise ValueError(f"Input segmentation mask arrays must either be 2D or 3D - shape of input mask: {input.shape}")
     if type(color) == int:
-        np_color = (color, color, color)
+        np_color = [color, color, color]
     elif len(color) == 3:
         np_color = color
     else:
