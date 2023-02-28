@@ -52,7 +52,7 @@ def check_global_keys(client:labelboxClient, global_keys:list):
         global_key = gk[i]
         if data_row_id:
             existing_dr_to_gk[data_row_id] = global_key    
-    return res, existing_dr_to_gk
+    return existing_dr_to_gk
 
 def batch_create_data_rows(client:labelboxClient, upload_dict:dict, 
                            skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
@@ -93,11 +93,8 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
         # Begin global key check on global_key_to_upload_dict
         global_keys_list = list(global_key_to_upload_dict.keys()) # Ensure your global key_to_upload_dict has unique global keys
         for i in range(0, len(global_keys_list), batch_size): # Check global keys 20k at a time
-            gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Batch of global keys
-            payload, existing_data_row_to_global_key = check_global_keys(client, gks)
-            if payload["deletedDataRowGlobalKeys"]: # If global keys are in use by deleted data rows, clear deleted data rows and try again
-                client.clear_global_keys(res["deletedDataRowGlobalKeys"])        
-            payload, existing_data_row_to_global_key = check_global_keys(client, gks)
+            gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Batch of global keys   
+            existing_data_row_to_global_key = check_global_keys(client, gks)
             loop_counter = 0
             while existing_data_row_to_global_key: # If existing data rows are using global keys
                 if skip_duplicates: # Drop in-use global keys if we're skipping duplicates
@@ -119,7 +116,7 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
                         global_key_to_upload_dict[new_gk] = upload_value # Replace with new data row / global key
                     global_keys_list = list(global_key_to_upload_dict.keys()) # Make a new global key list
                     gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Determine batch
-                    payload, existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
+                    existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
             updated_dict[dataset_id] = global_key_to_upload_dict # Return a modified index with available global keys         
             # End global key check on global_key_to_upload_dict
         upload_list = [upload_value["data_row"] for upload_value in global_key_to_upload_dict.values()] # Create an upload list
