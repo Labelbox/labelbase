@@ -18,8 +18,8 @@ def create_global_key_to_data_row_dict(client:labelboxClient, global_keys:list):
     global_key_to_data_row_dict = {global_keys[i] : res['results'][i] for i in range(0, len(global_keys))}
     return global_key_to_data_row_dict
 
-def check_global_keys(client:labelboxClient, global_keys:list, batch_size:int=20000):
-    """ Checks if data rows exist for a set of global keys
+def check_global_keys(client:labelboxClient, global_keys:list):
+    """ Checks if data rows exist for a set of global keys - maxes out at 150k
     Args:
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
         global_keys             :   Required (list(str)) - List of global key strings
@@ -34,30 +34,25 @@ def check_global_keys(client:labelboxClient, global_keys:list, batch_size:int=20
     query_str_2 = """query get_job_result($job_id:ID!){dataRowsForGlobalKeysResult(jobId:{id:$job_id}){data{
                     accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""        
     res = None
-    total_res = []
-    all_gk = [str(x) for x in global_keys]
-    for i in range(0, len(all_gk), batch_size):
-        gk = all_gk[i:] if i + batch_size >= len(all_gk) else all_gk[i:i+batch_size] # Determine batch
+    gk = [str(x) for x in global_keys]
+    while not res:
+        query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
+        res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
+    # If there are deleted data rows holding global keys, clear them and re-do the check
+    if res["deletedDataRowGlobalKeys"]:
+        client.clear_global_keys(res["deletedDataRowGlobalKeys"])   
         res = None
         while not res:
             query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
-            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
-        # If there are deleted data rows holding global keys, clear them and re-do the check
-        if res["deletedDataRowGlobalKeys"]:
-            client.clear_global_keys(res["deletedDataRowGlobalKeys"])   
-            res = None
-            while not res:
-                query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
-                res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']  
-        # Create a dictionary where {key=data_row_id : value=global_key}
-        existing_dr_to_gk = {}
-        for i in range(0, len(res["fetchedDataRows"])):
-            data_row_id = res["fetchedDataRows"][i]["id"]
-            global_key = gk[i]
-            if data_row_id:
-                existing_dr_to_gk[data_row_id] = global_key    
-        total_res.extend(res)
-    return total_res, existing_dr_to_gk
+            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']  
+    # Create a dictionary where {key=data_row_id : value=global_key}
+    existing_dr_to_gk = {}
+    for i in range(0, len(res["fetchedDataRows"])):
+        data_row_id = res["fetchedDataRows"][i]["id"]
+        global_key = gk[i]
+        if data_row_id:
+            existing_dr_to_gk[data_row_id] = global_key    
+    return res, existing_dr_to_gk
 
 def batch_create_data_rows(client:labelboxClient, upload_dict:dict, 
                            skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
@@ -95,34 +90,39 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
     for dataset_id in upload_dict.keys():
         dataset = client.get_dataset(dataset_id)
         global_key_to_upload_dict = upload_dict[dataset_id]
-        global_keys_list = list(global_key_to_upload_dict.keys())
-        payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list)
-        if payload["deletedDataRowGlobalKeys"]:
-            client.clear_global_keys(res["deletedDataRowGlobalKeys"])        
-        payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list)
-        loop_counter = 0
-        while existing_data_row_to_global_key: # If existing data rows are using gloval keys
-            if skip_duplicates: # Drop from global_key_to_upload_dict if we're skipping duplicates
-                if verbose:
-                    print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
-                for gk in existing_data_row_to_global_key.keys():
-                    del global_key_to_upload_dict[gk]
-                break
-            else: # Create new suffix, replace in global_key_to_upload_dict, refresh existing_data_row_to_global_key
-                loop_counter += 1 # Count the amount of attempts - this is used as a suffix                
-                if verbose:
-                    print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
-                for gk in existing_data_row_to_global_key.values():
-                    gk_root = gk if loop_counter == 1 else gk[:-(len(divider)+len(str(loop_counter)))] # Root global key, no suffix
-                    new_gk = f"{gk_root}{divider}{loop_counter}" # New global key with suffix
-                    upload_value = global_key_to_upload_dict[gk] # Grab data row upload
-                    upload_value["data_row"]["global_key"] = new_gk # Replace the global key in our data row upload value
-                    del global_key_to_upload_dict[gk] # Delete global key that's in use already
-                    global_key_to_upload_dict[new_gk] = upload_value # Replace with new global key
-                global_keys_list = list(global_key_to_upload_dict.keys()) # Make a new global key list
-                payload, existing_data_row_to_global_key = check_global_keys(client, global_keys_list) # Refresh existing_data_row_to_global_key
-        updated_dict[dataset_id] = global_key_to_upload_dict # Since we may have dropped/replaced some global keys, we will return a modified index            
-        upload_list = [upload_value["data_row"] for upload_value in global_key_to_upload_dict.values()]
+        # Begin global key check on global_key_to_upload_dict
+        global_keys_list = list(global_key_to_upload_dict.keys()) # Ensure your global key_to_upload_dict has unique global keys
+        for i in range(0, len(global_keys_list), batch_size): # Check global keys 20k at a time
+            gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Batch of global keys
+            payload, existing_data_row_to_global_key = check_global_keys(client, gks)
+            if payload["deletedDataRowGlobalKeys"]: # If global keys are in use by deleted data rows, clear deleted data rows and try again
+                client.clear_global_keys(res["deletedDataRowGlobalKeys"])        
+            payload, existing_data_row_to_global_key = check_global_keys(client, gks)
+            loop_counter = 0
+            while existing_data_row_to_global_key: # If existing data rows are using global keys
+                if skip_duplicates: # Drop in-use global keys if we're skipping duplicates
+                    if verbose:
+                        print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
+                    for gk in existing_data_row_to_global_key.keys():
+                        del global_key_to_upload_dict[gk]
+                    break
+                else: # Create new suffix for taken global keys if we're not skipping duplicates
+                    loop_counter += 1 # Suffix counter     
+                    if verbose:
+                        print(f"Warning: Global keys in this upload are in use by active data rows, attempting to add the following suffix to affected data rows: '{divider}{loop_counter}'")                   
+                    for egk in existing_data_row_to_global_key.values(): # For each existing global key, remove and replace with new global key
+                        gk_root = egk if loop_counter == 1 else egk[:-(len(divider)+len(str(loop_counter)))] # Root global key, no suffix
+                        new_gk = f"{gk_root}{divider}{loop_counter}" # New global key with suffix
+                        upload_value = global_key_to_upload_dict[egk] # Grab data row from old global key
+                        upload_value["data_row"]["global_key"] = new_gk # Update global key value in data row
+                        del global_key_to_upload_dict[egk] # Delete old global key
+                        global_key_to_upload_dict[new_gk] = upload_value # Replace with new data row / global key
+                    global_keys_list = list(global_key_to_upload_dict.keys()) # Make a new global key list
+                    gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Determine batch
+                    payload, existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
+            updated_dict[dataset_id] = global_key_to_upload_dict # Return a modified index with available global keys         
+            # End global key check on global_key_to_upload_dict
+        upload_list = [upload_value["data_row"] for upload_value in global_key_to_upload_dict.values()] # Create an upload list
         if verbose:
             print(f'Beginning data row upload for dataset ID {dataset_id}: uploading {len(upload_list)} data rows')
         batch_number = 0
