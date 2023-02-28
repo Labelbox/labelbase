@@ -35,8 +35,8 @@ def check_global_keys(client:labelboxClient, global_keys:list):
     res = None
     total_res = []
     all_gk = [str(x) for x in global_keys]
-    for i in range(0, len(all_gk), 150000):
-        max = i+150000
+    for i in range(0, len(all_gk), 100000):
+        max = i+100000
         gk = all_gk[i:max] if max < len(all_gk) else all_gk[i:]    
         res = None
         while not res:
