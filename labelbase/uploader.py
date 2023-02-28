@@ -40,7 +40,7 @@ def check_global_keys(client:labelboxClient, global_keys:list):
         res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
     # If there are deleted data rows holding global keys, clear them and re-do the check
     if res["deletedDataRowGlobalKeys"]:
-        client.clear_global_keys(res["deletedDataRowGlobalKeys"])   
+        client.clear_global_keys(res["deletedDataRowGlobalKeys"], timeout_seconds=600)   
         res = None
         while not res:
             query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
