@@ -28,30 +28,36 @@ def check_global_keys(client:labelboxClient, global_keys:list):
         existing_dr_to_gk       :   Dictinoary where {key=data_row_id : value=global_key} for data rows in use by global keys passed in. 
                                     If this = {}, then all global keys are free to use
     """
-    query_keys = [str(x) for x in global_keys]
     # Create a query job to get data row IDs given global keys
     query_str_1 = """query get_datarow_with_global_key($global_keys:[ID!]!){dataRowsForGlobalKeys(where:{ids:$global_keys}){jobId}}"""
     query_str_2 = """query get_job_result($job_id:ID!){dataRowsForGlobalKeysResult(jobId:{id:$job_id}){data{
                     accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""        
     res = None
-    while not res:
-        query_job_id = client.execute(query_str_1, {"global_keys":global_keys})['dataRowsForGlobalKeys']['jobId']
-        res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
-    # If there are deleted data rows holding global keys, clear them and re-do the check
-    if res["deletedDataRowGlobalKeys"]:
-        client.clear_global_keys(res["deletedDataRowGlobalKeys"])   
+    total_res = []
+    all_gk = [str(x) for x in global_keys]
+    for i in range(0, len(all_gk), 150000):
+        max = i+150000
+        gk = all_gk[i:max] if max < len(all_gk) else all_gk[i:]    
         res = None
         while not res:
-            query_job_id = client.execute(query_str_1, {"global_keys":global_keys})['dataRowsForGlobalKeys']['jobId']
-            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']  
-    # Create a dictionary where {key=data_row_id : value=global_key}
-    existing_dr_to_gk = {}
-    for i in range(0, len(res["fetchedDataRows"])):
-        data_row_id = res["fetchedDataRows"][i]["id"]
-        global_key = global_keys[i]
-        if data_row_id:
-            existing_dr_to_gk[data_row_id] = global_key             
-    return res, existing_dr_to_gk
+            query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
+            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
+        # If there are deleted data rows holding global keys, clear them and re-do the check
+        if res["deletedDataRowGlobalKeys"]:
+            client.clear_global_keys(res["deletedDataRowGlobalKeys"])   
+            res = None
+            while not res:
+                query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
+                res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']  
+        # Create a dictionary where {key=data_row_id : value=global_key}
+        existing_dr_to_gk = {}
+        for i in range(0, len(res["fetchedDataRows"])):
+            data_row_id = res["fetchedDataRows"][i]["id"]
+            global_key = gk[i]
+            if data_row_id:
+                existing_dr_to_gk[data_row_id] = global_key    
+        total_res.extend(res)
+    return total_res, existing_dr_to_gk
 
 def batch_create_data_rows(client:labelboxClient, upload_dict:dict, 
                            skip_duplicates:bool=True, divider:str="___", batch_size:int=20000, verbose:bool=False):
