@@ -18,11 +18,12 @@ def create_global_key_to_data_row_dict(client:labelboxClient, global_keys:list):
     global_key_to_data_row_dict = {global_keys[i] : res['results'][i] for i in range(0, len(global_keys))}
     return global_key_to_data_row_dict
 
-def check_global_keys(client:labelboxClient, global_keys:list):
+def check_global_keys(client:labelboxClient, global_keys:list, batch_size:int=20000):
     """ Checks if data rows exist for a set of global keys
     Args:
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
         global_keys             :   Required (list(str)) - List of global key strings
+        batch_size              :   Optional (int) - Query check batch size, 20,000 is recommended        
     Returns:
         GQL payload             :   Dictionary where {keys="accessDeniedGlobalKeys", "deletedDataRowGlobalKeys", "fetchedDataRows", "notFoundGlobalKeys"}
         existing_dr_to_gk       :   Dictinoary where {key=data_row_id : value=global_key} for data rows in use by global keys passed in. 
@@ -35,9 +36,8 @@ def check_global_keys(client:labelboxClient, global_keys:list):
     res = None
     total_res = []
     all_gk = [str(x) for x in global_keys]
-    for i in range(0, len(all_gk), 100000):
-        max = i+100000
-        gk = all_gk[i:max] if max < len(all_gk) else all_gk[i:]    
+    for i in range(0, len(all_gk), batch_size):
+        gk = all_gk[i:] if i + batch_size >= len(all_gk) else all_gk[i:i+batch_size] # Determine batch
         res = None
         while not res:
             query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
