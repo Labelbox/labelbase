@@ -4,18 +4,21 @@ from labelbox import Project as labelboxProject
 import uuid
 import math
 
-def create_global_key_to_data_row_dict(client:labelboxClient, global_keys:list):
+def create_global_key_to_data_row_dict(client:labelboxClient, global_keys:list, batch_size:int=20000):
     """ Creates a dictionary where {key=global_key : value=data_row_id}
     Args:
         client          :   Required (labelbox.client.Client) - Labelbox Client object    
         global_keys     :   Required (list(str)) - List of global key strings
     Returns:
         Dictionary where {key=global_key : value=data_row_id}
-    """
-    res = client.get_data_row_ids_for_global_keys(global_keys, timeout_seconds=600)
-    if res['errors']:
-        raise ValueError(f"{res}")
-    global_key_to_data_row_dict = {global_keys[i] : res['results'][i] for i in range(0, len(global_keys))}
+    """    
+    global_key_to_data_row_dict = {}
+    for i in range(0, len(global_keys), batch_size):
+        gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Batch of global keys   
+        res = client.get_data_row_ids_for_global_keys(gks, timeout_seconds=600)
+        if res['errors']:
+            raise ValueError(f"{res}")
+        global_key_to_data_row_dict.update({global_keys[i] : res['results'][i] for i in range(0, len(global_keys))})
     return global_key_to_data_row_dict
 
 def check_global_keys(client:labelboxClient, global_keys:list):
