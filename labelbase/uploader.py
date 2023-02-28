@@ -89,6 +89,9 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
     updated_dict = {}
     for dataset_id in upload_dict.keys():
         dataset = client.get_dataset(dataset_id)
+        if verbose:
+            print(f"Beginning upload for Dataset with ID {dataset_id}")
+            print(f"Vetting global keys")
         global_key_to_upload_dict = upload_dict[dataset_id]
         # Begin global key check on global_key_to_upload_dict
         global_keys_list = list(global_key_to_upload_dict.keys()) # Ensure your global key_to_upload_dict has unique global keys
@@ -119,9 +122,11 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
                     existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
             updated_dict[dataset_id] = global_key_to_upload_dict # Return a modified index with available global keys         
             # End global key check on global_key_to_upload_dict
+        if verbose:
+            print(f"Global keys vetted")            
         upload_list = [upload_value["data_row"] for upload_value in global_key_to_upload_dict.values()] # Create an upload list
         if verbose:
-            print(f'Beginning data row upload for dataset ID {dataset_id}: uploading {len(upload_list)} data rows')
+            print(f'Beginning data row upload for Dataset with ID {dataset_id} - uploading {len(upload_list)} data rows')
         batch_number = 0
         for i in range(0,len(upload_list),batch_size):
             batch_number += 1 # Count uploads
