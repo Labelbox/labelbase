@@ -2,6 +2,66 @@ from labelbox import Client as labelboxClient
 from labelbox.schema.data_row_metadata import DataRowMetadataKind
 from labelbase.metadata import _refresh_metadata_ontology
 
+def determine_actions(dataset_id:str, dataset_id_col:str, project_id:str, project_id_col:str, upload_method:str, annotation_index:dict):
+    """ Determines if this upload action can batch data rows to projects - does so by checking if a project ID string or column has been provided
+    Args:
+        dataset_id                  :   Required (str) - Labelbox Dataset ID
+        dataset_id_col              :   Required (str) - Column name pertaining to dataset_id        
+        project_id                  :   Required (str) - Labelbox Project ID
+        project_id_col              :   Required (str) - Column name pertaining to project_id
+        upload_method               :   Required (bool) - Either "mal", "import", or ""
+        annotation_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}        
+    Returns:
+        batch_action                :   Required (bool) - True if batching to projects, False if not
+        annotate_action             :   Required (bool) - True if uploading annotations to projects, False if not
+    """
+    if (dataset_id_col=="") and (dataset_id==""):
+        raise ValueError(f"To create data rows, please provide either a `dataset_id` column or a Labelbox dataset ID to argument `dataset_id`")    
+    if (project_id == "") and (project_id_col == ""):
+        batch_action = False
+    else:
+        batch_action = True
+    if upload_method: # If there's an upload method, the user at least wants to upload annotations
+        if upload_method in ["mal", "import"]:
+            if not batch_action:
+                raise ValueError(f"Upload method was provided, but data rows have not been configured to-be-batched to projects")
+            elif annotation_index = {}:
+                raise ValueError(f"Upload method was provided, but no columns have been identified as columns containing annotation values")
+            else: # There's a batch_action and there's an annotation_index
+                annotate_action = True
+        else:
+            raise ValueError(f"Upload method was provided, but must be one of `mal` or `import` - received `{upload_method}`")
+   else:
+        annotate_action = False
+    return batch_action, annotate_action
+
+def determine_annotate_action(batch_action:bool, upload_method:str, annotation_index:dict):
+    """ Determines if this upload action can upload annotations to projects - does so by checking the following conditions:
+    
+    1. If there's a batch action
+    2. If an upload method has been provided
+    3. If there are columns that were registered in the annotation_index
+    
+    Args:
+        batch_action                :   Required (bool) - True if batching to projects, False if not
+        upload_method               :   Required (bool) - Either "mal", "import", or ""
+        annotation_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}
+    Returns:
+        True if uploading annotations to projects, False if not
+    """
+    if upload_method: # If there's an upload method, the user at least wants to upload annotations
+        if upload_method in ["mal", "import"]:
+            if not batch_action:
+                raise ValueError(f"Upload method was provided, but data rows have not been configured to-be-batched to projects")
+            elif annotation_index = {}:
+                raise ValueError(f"Upload method was provided, but no columns have been identified as columns containing annotation values")
+            else: # There's a batch_action and there's an annotation_index
+                return True
+        else:
+            raise ValueError(f"Upload method was provided, but must be one of `mal` or `import` - received `{upload_method}`")
+   else:
+        return False   
+
 def validate_columns(client:labelboxClient, table, get_columns_function, get_unique_values_function, 
                      divider:str="///", verbose:bool=False, extra_client=None):
     """ Given a table of columns with the right naming formats, does the following:
