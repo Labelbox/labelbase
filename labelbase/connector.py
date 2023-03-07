@@ -31,7 +31,7 @@ def determine_actions(dataset_id:str, dataset_id_col:str, project_id:str, projec
                 annotate_action = True
         else:
             raise ValueError(f"Upload method was provided, but must be one of `mal` or `import` - received `{upload_method}`")
-   else:
+    else:
         annotate_action = False
     return batch_action, annotate_action  
 
