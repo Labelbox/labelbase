@@ -14,6 +14,6 @@ setuptools.setup(
       long_description=long_description,
       long_description_content_type="text/markdown",
       install_requires=["labelbox", "packaging"],
-      keywords=["labelbox", "labelbase"],
+      keywords=["labelbox[data]", "labelbase"],
       extras_require={'dev': ['pylint']}
 )
