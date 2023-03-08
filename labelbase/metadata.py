@@ -95,7 +95,7 @@ def sync_metadata_fields(client:labelboxClient, table, get_columns_function, add
             column_names = get_columns_function(table, extra_client=extra_client)
             for metadata_field_name in metadata_index.keys():
                 if metadata_field_name not in column_names:
-                    table = add_column_function(table, column_name=metadata_field_name, default_value=None, extra_client=extra_client)
+                    table = add_column_function(table=table, col=metadata_field_name, default_value=None, extra_client=extra_client)
     # If Labelbox doesn't have metadata for all your metadata_field_names, make Labelbox metadata fields
     for metadata_field_name in metadata_index.keys():
         metadata_type = metadata_index[metadata_field_name]
