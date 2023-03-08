@@ -13,7 +13,7 @@ setuptools.setup(
       url="https://labelbox.com",
       long_description=long_description,
       long_description_content_type="text/markdown",
-      install_requires=["labelbox", "packaging"],
-      keywords=["labelbox[data]", "labelbase"],
+      install_requires=["labelbox[data]", "packaging"],
+      keywords=["labelbox", "labelbase"],
       extras_require={'dev': ['pylint']}
 )
