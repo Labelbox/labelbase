@@ -144,5 +144,6 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
             metadata_value = metadata_value.astimezone(pytz.utc).replace(tzinfo=None)
             return_value = metadata_value.isoformat(sep='Z',timespec='auto')
         else:
-            return_value = None       
-    return return_value    
+            return_value = None     
+    x = return_value if type(return_value) != datetime else return_value.isoformat(sep='Z',timespec='auto')
+    return x
