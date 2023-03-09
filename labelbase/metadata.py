@@ -140,13 +140,9 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
     else: # For datetime, it's an isoformat string
         if type(metadata_value) == str:
             metadata_value = parser.parse(metadata_value)
-            print("Parsed datetime string")
         if type(metadata_value) == datetime:
             metadata_value = metadata_value.astimezone(pytz.utc).replace(tzinfo=None)
-            print("Modified datetime timezone")            
-            return_value = metadata_value.isoformat(sep='Z',timespec='auto')
-            print("Converted datetime to string")                        
+            return_value = metadata_value.isoformat(sep='Z',timespec='auto')                
         else:
             return_value = None     
-    x = return_value if type(return_value) != datetime else return_value.isoformat(sep='Z',timespec='auto')
-    return x
+    return return_value
