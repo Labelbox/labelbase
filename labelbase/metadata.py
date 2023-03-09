@@ -139,11 +139,10 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
         return_value = str(metadata_value)
     else: # For datetime, it's an isoformat string
         if type(metadata_value) == str:
-            x = parser.parse(metadata_value).astimezone(pytz.utc).replace(tzinfo=None)
-            return_value = x.isoformat(sep='Z',timespec='auto')
-        elif type(metadata_value) == datetime:
-            x = metadata_value.astimezone(pytz.utc).replace(tzinfo=None)
-            return_value = x.isoformat(sep='Z',timespec='auto')
+            metadata_value = parser.parse(metadata_value)
+        if type(metadata_value) == datetime:
+            metadata_value = metadata_value.astimezone(pytz.utc).replace(tzinfo=None)
+            return_value = metadata_value.isoformat(sep='Z',timespec='auto')
         else:
             return_value = None       
     return return_value    
