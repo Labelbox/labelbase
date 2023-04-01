@@ -148,7 +148,7 @@ def validate_column_name_change(old_col_name:str, new_col_name:str, existing_col
     """ 
     if old_col_name not in existing_col_names:
         raise ValueError(f"Argument `rename_dict` requires a dictionary where:\n            \n        `old_column_name` : `new_column_name`,\n        `old_column_name` : `new_column_name`\n    \nReceived key `{old_col_name}` which is not an existing column name")    
-    if new_col_name in ["row_data", "external_id", "global_key"]:
+    if new_col_name in ["row_data", "external_id", "global_key", "file_path"]:
         valid_column = True
     elif new_col_name.startswith("metadata"):
         valid_column = True
