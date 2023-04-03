@@ -89,6 +89,7 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
         upload_errors                           :   Either a list Labelbox upload errors or an empty list if no errors
         updated_dict                            :   Updated dataset_to_global_key_to_upload_dict if global keys were removed or updated
     """
+    e = [] # Default error message
     updated_dict = {}
     for dataset_id in upload_dict.keys():
         dataset = client.get_dataset(dataset_id)
@@ -147,7 +148,6 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
             else:
                 if verbose: 
                     print(f'Success: Upload batch number {batch_number} successful')  
-                e = []
     if verbose:
         print(f'Upload complete - all data rows uploaded')
     return e, updated_dict
