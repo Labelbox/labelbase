@@ -106,7 +106,7 @@ def batch_create_data_rows(client:labelboxClient, upload_dict:dict,
                 if skip_duplicates: # Drop in-use global keys if we're skipping duplicates
                     if verbose:
                         print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
-                    for gk in existing_data_row_to_global_key.keys():
+                    for gk in existing_data_row_to_global_key.values():
                         del global_key_to_upload_dict[gk]
                     break
                 else: # Create new suffix for taken global keys if we're not skipping duplicates
