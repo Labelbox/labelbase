@@ -127,7 +127,7 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
     if metadata_type == "enum": # For enums, it must be a schema ID - if we can't match it, we have to skip it
         name_key = f"{parent_name}{divider}{str(metadata_value)}"
         if name_key in metadata_name_key_to_schema.keys():
-            return_value = metadata_name_key_to_schema[name_key]
+            return_value = str(metadata_name_key_to_schema[name_key])
         else:
             return_value = None                  
     elif metadata_type == "number": # For numbers, it's ints as strings
