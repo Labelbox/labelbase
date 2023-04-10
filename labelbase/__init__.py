@@ -10,3 +10,4 @@ from labelbase import dataset
 from labelbase import annotate
 from labelbase import connector
 from labelbase import masks
+from labelbase import models
