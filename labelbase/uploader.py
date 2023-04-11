@@ -21,7 +21,7 @@ def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, gl
             global_key_to_label_id_dict[label['Global Key']] = label['ID']
     return global_key_to_label_id_dict
 
-def create_global_key_to_data_row_dict(client:labelboxClient, global_keys:list, batch_size:int=20000):
+def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:list, batch_size:int=20000):
     """ Creates a dictionary where {key=global_key : value=data_row_id}
     Args:
         client          :   Required (labelbox.client.Client) - Labelbox Client object    
@@ -279,7 +279,7 @@ def batch_rows_to_project(
     e = [] 
     # Create a dictionary where { key=project_id : value=list_of_data_row_ids }
     project_id_to_data_row_ids = {}
-    global_key_to_data_row_id = create_global_key_to_data_row_dict(client=client, global_keys=list(upload_dict.keys()))
+    global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
         if project_id not in project_id_to_data_row_ids.keys():
