@@ -123,11 +123,12 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
     return x
 
 def determine_actions(
-    dataset_id:str, dataset_id_col:str, project_id:str, project_id_col:str, 
+    row_data_col:str, dataset_id:str, dataset_id_col:str, project_id:str, project_id_col:str, 
     model_id:str, model_id_col:str, model_run_id:str, model_run_id_col:str,
-    upload_method:str, annotation_index:dict, prediction_index:dict):
+    upload_method:str, metadata_index:dict, attachment_index:dict, annotation_index:dict, prediction_index:dict):
     """ Determines if this upload action can batch data rows to projects - does so by checking if a project ID string or column has been provided
     Args:
+        row_data_col                :   Required (str) Column representing asset URL, raw text, or path to local asset file
         dataset_id                  :   Required (str) - Labelbox Dataset ID
         dataset_id_col              :   Required (str) - Column name pertaining to dataset_id
         project_id                  :   Required (str) - Labelbox Project ID
@@ -136,9 +137,11 @@ def determine_actions(
         model_id_col                :   Required (str) - Column name pertaining to model_id
         model_run_id                :   Required (str) - Labelbox Model Run ID (supercedes model_run_id_col)
         model_run_id_col            :   Required (str) - Column name pertaining to model_run_id (supercedes model_id)
-        upload_method               :   Required (bool) - Either "mal", "import", or ""
-        annotation_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}
-        prediction_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}
+        upload_method               :   Required (bool) - Either "mal", "import", "ground-truth" or ""
+        metadata_index              :   Required (dict) - Dictonary where {key=metadata_field_name : value=metadata_type} or {} if not uploading metadata
+        attachment_index            :   Required (dict) - Dictonary where {key=column_name : value=attachment_type} or {} if not uploading attachments
+        annotation_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_class_name} or {} if not uploading annotations
+        prediction_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_class_name} or {}  if not uploading predictions
     Returns:
         create_action               :   True dataset_id or dataset_id_col exists
         batch_action                :   True if project_id or project_id_col exists
@@ -147,17 +150,24 @@ def determine_actions(
         predictions_action          :   Dictionary that determines how to select a model run, if uploading predictions to a model run, else = False
     """
     # Determine if we're creating data rows
-    create_action = False if (dataset_id == dataset_id_col == "") else True
+    create_action = False if (dataset_id == dataset_id_col == "") or (row_data_col == "") else True
+    # Metadata and Attachments actions are only performed if **not** creating data rows (done with the data row upload otherwise)
+    metadata_action = True if metadata_index and not create_action else False
+    attachments_action = True if attachment_index and not create_action else False    
     # Determine if we're batching data rows
     batch_action = False if (project_id == project_id_col == "") else True
     # Determine the upload_method if we're batching to projects
     annotate_action = upload_method if (upload_method in ["mal", "import", "ground-truth"]) and annotation_index and batch_action else ""      
+    # "ground-truth" defaults to "import" if no model informtion is given
     if (model_id_col==model_id==model_run_id_col==model_run_id=="") and (annotate_action=="ground-truth"):
         print(f"Warning - attempted ground-truth upload attempted, but no model run / model information was provided - uploading data as submitted labels")
         annotate_action = "import" 
     # Determine what kind of predictions action we're taking, if any
     predictions_action = False if not prediction_index else True
-    return create_action, batch_action, annotate_action, predictions_action
+    return {
+      "create" : create_action, "batch" : batch_action, "metadata" : metadata_action, 
+      "attachments" : attachment_action, "annotate" : annotate_action, "predictions" : predictions_action
+    }
   
 def validate_column_name_change(old_col_name:str, new_col_name:str, existing_col_names:list):
     """ Validates that the rename aligns with LabelPandas column name specifications
