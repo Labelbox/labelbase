@@ -129,16 +129,16 @@ def determine_actions(
     """ Determines if this upload action can batch data rows to projects - does so by checking if a project ID string or column has been provided
     Args:
         dataset_id                  :   Required (str) - Labelbox Dataset ID
-        dataset_id_col              :   Required (str) - Column name pertaining to dataset_id        
+        dataset_id_col              :   Required (str) - Column name pertaining to dataset_id
         project_id                  :   Required (str) - Labelbox Project ID
         project_id_col              :   Required (str) - Column name pertaining to project_id
         model_id                    :   Required (str) - Labelbox Model ID ID (supercedes model_id_col)
         model_id_col                :   Required (str) - Column name pertaining to model_id
         model_run_id                :   Required (str) - Labelbox Model Run ID (supercedes model_run_id_col)
-        model_run_id_col            :   Required (str) - Column name pertaining to model_run_id (supercedes model_id)   
+        model_run_id_col            :   Required (str) - Column name pertaining to model_run_id (supercedes model_id)
         upload_method               :   Required (bool) - Either "mal", "import", or ""
-        annotation_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}   
-        prediction_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}           
+        annotation_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}
+        prediction_index            :   Required (dict) - Dictonary where {key=column_name : value=top_level_feature_name}
     Returns:
         create_action               :   True dataset_id or dataset_id_col exists
         batch_action                :   True if project_id or project_id_col exists
@@ -151,9 +151,10 @@ def determine_actions(
     # Determine if we're batching data rows
     batch_action = False if (project_id == project_id_col == "") else True
     # Determine the upload_method if we're batching to projects
-    annotate_action = upload_method if (upload_method in ["mal", "import", "ground-truth"]) and annotation_index and batch_action else ""  
-    # If no model / model run information is given, ground-truth defaults to import
-    annotate_action = "import" if (model_id_col==model_id==model_run_id_col==model_run_id=="") and (annotate_action=="ground-truth") else annotate_action
+    annotate_action = upload_method if (upload_method in ["mal", "import", "ground-truth"]) and annotation_index and batch_action else ""      
+    if (model_id_col==model_id==model_run_id_col==model_run_id=="") and (annotate_action=="ground-truth"):
+        print(f"Warning - attempted ground-truth upload attempted, but no model run / model information was provided - uploading data as submitted labels")
+        annotate_action = "import" 
     # Determine what kind of predictions action we're taking, if any
     predictions_action = False if not prediction_index else True
     return create_action, batch_action, annotate_action, predictions_action
