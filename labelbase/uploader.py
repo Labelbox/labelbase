@@ -4,14 +4,14 @@ from labelbox import Project as labelboxProject
 import uuid
 import math
 
-def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, global_keys:list, batch_size:int=20000):
-    """ Creates a dictionary where {key=global_key : value=label_id}
+def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, global_keys:list):
+    """ Creates a dictionary where { key=global_key : value=label_id } by exporting labels from a project
     Args:
         client          :   Required (labelbox.client.Client) - Labelbox Client object    
         project_id      :   Required (str) - Labelbox Project ID
         global_keys     :   Required (list(str)) - List of global key strings
     Returns:
-        Dictionary where {key=global_key : value=label_id}
+        Dictionary where { key=global_key : value=label_id }
     """      
     global_key_to_label_id_dict = {}
     project = client.get_project(project_id)
@@ -21,8 +21,8 @@ def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, gl
             global_key_to_label_id_dict[label['Global Key']] = label['ID']
     return global_key_to_label_id_dict
 
-def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:list, batch_size:int=20000):
-    """ Creates a dictionary where {key=global_key : value=data_row_id}
+def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:list, timeout_seconds=600, batch_size:int=20000):
+    """ Creates a dictionary where { key=global_key : value=data_row_id } using client.get_data_row_ids_for_global_keys()
     Args:
         client          :   Required (labelbox.client.Client) - Labelbox Client object    
         global_keys     :   Required (list(str)) - List of global key strings
@@ -32,47 +32,44 @@ def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:lis
     global_key_to_data_row_dict = {}
     for i in range(0, len(global_keys), batch_size):
         gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size]  
-        res = client.get_data_row_ids_for_global_keys(gks, timeout_seconds=600)
+        res = client.get_data_row_ids_for_global_keys(gks, timeout_seconds=timeout_seconds)
         if res['errors']:
             raise ValueError(f"{res}")
         global_key_to_data_row_dict.update({gks[i] : res['results'][i] for i in range(0, len(gks))})
     return global_key_to_data_row_dict
 
-def check_global_keys(client:labelboxClient, global_keys:list):
-    """ Checks if data rows exist for a set of global keys - maxes out at 150k
+def check_global_keys(client:labelboxClient, global_keys:list, batch_size=20000):
+    """ Checks if data rows exist for a set of global keys - if data rows exist, returns as dictionary { key=data_row_id : value=global_key }
     Args:
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
         global_keys             :   Required (list(str)) - List of global key strings
         batch_size              :   Optional (int) - Query check batch size, 20,000 is recommended        
     Returns:
-        GQL payload             :   Dictionary where {keys="accessDeniedGlobalKeys", "deletedDataRowGlobalKeys", "fetchedDataRows", "notFoundGlobalKeys"}
-        existing_dr_to_gk       :   Dictinoary where {key=data_row_id : value=global_key} for data rows in use by global keys passed in. 
+        existing_drid_to_gk     :   Dictinoary where { key=data_row_id : value=global_key }
                                     If this = {}, then all global keys are free to use
     """
+    # Initiate a dictionary where { key=data_row_id : value=global_key }
+    existing_drid_to_gk = {}
+    # Enforce global keys as strings
+    global_keys_list = [str(x) for x in global_keys]      
     # Create a query job to get data row IDs given global keys
     query_str_1 = """query get_datarow_with_global_key($global_keys:[ID!]!){dataRowsForGlobalKeys(where:{ids:$global_keys}){jobId}}"""
     query_str_2 = """query get_job_result($job_id:ID!){dataRowsForGlobalKeysResult(jobId:{id:$job_id}){data{
-                    accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""        
-    res = None
-    gk = [str(x) for x in global_keys]
-    while not res:
-        query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
-        res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
-    # If there are deleted data rows holding global keys, clear them and re-do the check
-    if res["deletedDataRowGlobalKeys"]:
-        client.clear_global_keys(res["deletedDataRowGlobalKeys"], timeout_seconds=600)   
+                    accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""      
+    # Batch global key checks
+    for i in range(0, len(global_keys_list), batch_size):
+        batch_gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size]  
+        # Run the query job
         res = None
         while not res:
-            query_job_id = client.execute(query_str_1, {"global_keys":gk})['dataRowsForGlobalKeys']['jobId']
-            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']  
-    # Create a dictionary where {key=data_row_id : value=global_key}
-    existing_dr_to_gk = {}
-    for i in range(0, len(res["fetchedDataRows"])):
-        data_row_id = res["fetchedDataRows"][i]["id"]
-        global_key = gk[i]
-        if data_row_id:
-            existing_dr_to_gk[data_row_id] = global_key    
-    return existing_dr_to_gk
+            query_job_id = client.execute(query_str_1, {"global_keys":batch_gks})['dataRowsForGlobalKeys']['jobId']
+            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
+        # Check query job results for fetched data rows
+        for i in range(0, len(res["fetchedDataRows"])):
+            data_row_id = res["fetchedDataRows"][i]["id"]
+            if data_row_id:
+                existing_drid_to_gk[data_row_id] = batch_gks[i]
+    return existing_drid_to_gk
 
 def batch_create_data_rows(
     client:labelboxClient, upload_dict:dict, skip_duplicates:bool=True, 
@@ -152,8 +149,8 @@ def batch_create_data_rows(
             print(f'Beginning data row upload for Dataset with ID {dataset_id} - uploading {len(upload_list)} data rows')
         batch_number = 0
         for i in range(0,len(upload_list),batch_size):
-            batch_number += 1 # Count uploads
             batch = upload_list[i:] if i + batch_size >= len(upload_list) else upload_list[i:i+batch_size] # Determine batch
+            batch_number += 1
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
             task = dataset.create_data_rows(batch)
@@ -196,7 +193,7 @@ def batch_upload_annotations(
         batch_size                  :   Optional (int) - Desired batch upload size - this size is determined by annotation counts, not by data row count
         verbose                     :   Optional (bool) - If True, prints information about code execution
     Returns: 
-        A list of errors if there is one, True if upload failed, False if successful
+        A list of errors if there is one - if empty list, upload was successful
     """
     # Default error message 
     e = [] 
@@ -245,6 +242,7 @@ def batch_upload_annotations(
                 if verbose:
                     print(f'Error: upload batch number {batch_number} unsuccessful')
                 e = errors
+                break
             else:
                 if verbose:
                     print(f'Success: upload batch number {batch_number} complete')   
@@ -466,7 +464,6 @@ def batch_upload_predictions(
                 else:
                     if verbose:
                         print(f'Success: upload batch number {batch_number} complete')   
-                    
     except Exception as error:
         e = error
     return e
