@@ -153,6 +153,8 @@ def batch_create_data_rows(
             batch_number += 1
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
+            print(dataset.uid)
+            print(batch)
             task = dataset.create_data_rows(batch)
             errors = task.errors
             if errors:
