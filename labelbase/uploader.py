@@ -169,7 +169,8 @@ def batch_create_data_rows(
     return e, upload_dict
 
 def batch_upload_annotations(
-    client:labelboxClient, upload_dict:dict, import_name:str=str(uuid.uuid4()), 
+    client:labelboxClient, upload_dict:dict, global_key_to_data_row_id:dict={},
+    import_name:str=str(uuid.uuid4()), 
     how:str="import", batch_size:int=10000, verbose=False):
     """ Batch imports labels given a batch size via MAL or LabelImport
     
@@ -197,6 +198,9 @@ def batch_upload_annotations(
     """
     # Default error message 
     e = "Success" 
+    # Get global_key_to_data_row_id if needed
+    if not global_key_to_data_row_id:
+        global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))
     # Determine the upload type
     if how.lower() == "mal":
         from labelbox import MALPredictionImport as upload_protocol
@@ -212,11 +216,19 @@ def batch_upload_annotations(
     project_id_to_upload_list = {}
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
-        data_row_id = upload_dict[gk]["annotations"][0]["dataRow"]["id"]
+        data_row_id = global_key_to_data_row_id[gk]
         annotations = upload_dict[gk]["annotations"]
+        annotations_with_data_row_id = []
+        for annotation in annotations:
+            if "dataRow" in annotation.keys():
+                annotations_with_data_row_id.append(annotation)
+            else:
+                x = annotation
+                x["dataRow"] = {"id" : data_row_id}
+                annotations_with_data_row_id.append(x)
         if project_id not in project_id_to_upload_list.keys():
             project_id_to_upload_dict[project_id] = {}
-        project_id_to_upload_dict[project_id][data_row_id] = annotations
+        project_id_to_upload_dict[project_id][data_row_id] = annotations_with_data_row_id
     batch_number = 0        
     # For each project, upload in batches grouped by data row IDs 
     for project_id in project_id_to_upload_dict:
@@ -249,8 +261,8 @@ def batch_upload_annotations(
     return e
 
 def batch_rows_to_project(
-    client:labelboxClient, upload_dict:dict, priority:int=5, 
-    batch_name:str=str(uuid.uuid4()), batch_size:int=1000, verbose:bool=False):
+    client:labelboxClient, upload_dict:dict, global_key_to_data_row_id:dict={},
+    priority:int=5, batch_name:str=str(uuid.uuid4()), batch_size:int=1000, verbose:bool=False):
     """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
     
     upload_dict must be in the following format:
@@ -275,9 +287,11 @@ def batch_rows_to_project(
     """
     # Default error message 
     e = "Success"
+    # Get global_key_to_data_row_id if needed
+    if not global_key_to_data_row_id:
+        global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))    
     # Create a dictionary where { key=project_id : value=list_of_data_row_ids }
     project_id_to_data_row_ids = {}
-    global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
         if project_id not in project_id_to_data_row_ids.keys():
@@ -325,6 +339,7 @@ def batch_add_data_rows_to_model_run(
     """
     # Default error message     
     e = "Success"
+    # Get global_key_to_data_row_id if needed    
     try:        
         # Dictionary where { key=model_run_id : list_of_global_keys }
         model_run_to_global_keys = {}
@@ -405,7 +420,8 @@ def batch_add_ground_truth_to_model_run(
     return e
 
 def batch_upload_predictions(
-    client:labelboxClient, upload_dict:dict, batch_size:int=1000, verbose:bool=False):
+    client:labelboxClient, upload_dict:dict, global_key_to_data_row_id:dict={}, 
+    batch_size:int=1000, verbose:bool=False):
     """ Uploads predictions to a Labelbox Model Run
     
     upload_dict must be in the following format:
@@ -430,6 +446,9 @@ def batch_upload_predictions(
     """
     # Default error message     
     e = "Success"
+    # Get global_key_to_data_row_id if needed
+    if not global_key_to_data_row_id:
+        global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))        
     try:
         # Dictionary where { key=model_run_id : value={key=global_key : value=list_of_prediction_ndjsons} } -- mrid_gk_preds
         mrid_gk_preds = {}
@@ -437,7 +456,16 @@ def batch_upload_predictions(
             mrid = upload_dict[gk]["model_run_id"]
             if mrid not in mrid_gk_preds.keys():
                 mrid_gk_preds[mrid] = {}
-            mrid_gk_preds[mrid][gk] = upload_dict[gk]["predictions"]
+            predictions_with_drid = []
+            for pred in upload_dict[gk]["predictions"]:
+                if "dataRow" in pred.keys():
+                    predictions_with_drid.append(pred)
+                else:
+                    drid = global_key_to_data_row_id[gk]
+                    x = pred
+                    x["dataRow"] = {"id" : drid}
+                    predictions_with_drid.append(x)
+            mrid_gk_preds[mrid][gk] = predictions_with_drid
         for mrid in mrid_gk_preds:
             model_run = client.get_model_run(mrid)
             gk_to_preds = mrid_gk_preds[mrid]
