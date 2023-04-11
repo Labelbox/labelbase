@@ -142,29 +142,20 @@ def determine_actions(
     Returns:
         create_action               :   True dataset_id or dataset_id_col exists
         batch_action                :   True if project_id or project_id_col exists
-        annotate_action             :   True if upload_method is either "mal" or "import", annotations are in the table, and batch_action = True
+        annotate_action             :   If upload_method is "mal", "import", or "ground-truth", annotations are in the table, batch_action = True
+                                        - If no model / model ID informtion is provided, will default "ground-truth" to "import"
         predictions_action          :   Dictionary that determines how to select a model run, if uploading predictions to a model run, else = False
     """
     # Determine if we're creating data rows
-    create_action = False if (dataset_id == "") and (dataset_id_col == "") else True
+    create_action = False if (dataset_id == dataset_id_col == "") else True
     # Determine if we're batching data rows
-    batch_action = False if (project_id == "") and (project_id_col == "") else True
+    batch_action = False if (project_id == project_id_col == "") else True
     # Determine the upload_method if we're batching to projects
-    annotate_action = upload_method if (upload_method in ["mal", "import"]) and annotation_index and batch_action else ""    
+    annotate_action = upload_method if (upload_method in ["mal", "import", "ground-truth"]) and annotation_index and batch_action else ""  
+    # If no model / model run information is given, ground-truth defaults to import
+    annotate_action = "import" if (model_id_col==model_id==model_run_id_col==model_run_id=="") and (annotate_action=="ground-truth") else annotate_action
     # Determine what kind of predictions action we're taking, if any
-    if prediction_index:
-        if model_run_id:
-            predictions_action = {"model_run_id" : model_run_id}
-        elif model_run_id_col:
-            predictions_action = {"model_run_id_col" : model_run_id_col}
-        elif model_id:
-            predictions_action = {"model_id" : model_id}        
-        elif model_id_col:
-            predictions_action = {"model_id_col" : model_id_col}         
-        else:
-            predictions_action = False
-    else:
-        predictions_action = False
+    predictions_action = False if not prediction_index else True
     return create_action, batch_action, annotate_action, predictions_action
   
 def validate_column_name_change(old_col_name:str, new_col_name:str, existing_col_names:list):
