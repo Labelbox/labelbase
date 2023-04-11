@@ -107,8 +107,8 @@ def batch_create_data_rows(
     global_keys = list(upload_dict.keys()) # Get all global keys
     if verbose:
         print(f"Vetting global keys")
-    for i in range(0, len(global_keys_list), batch_size): # Check global keys 20k at a time
-        gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Batch of global keys to vet 
+    for i in range(0, len(global_keys), batch_size): # Check global keys 20k at a time
+        gks = global_keys_list[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Batch of global keys to vet 
         existing_data_row_to_global_key = check_global_keys(client, gks) # Returns empty list if there are no duplicates
         loop_counter = 0
         while existing_data_row_to_global_key:
@@ -129,8 +129,8 @@ def batch_create_data_rows(
                     upload_value["data_row"]["global_key"] = new_gk # Update global key value in data row
                     del upload_dict[egk] # Delete old global key
                     upload_dict[new_gk] = upload_value # Replace with new data row / global key
-                global_keys_list = list(global_key_to_upload_dict.keys()) # Make a new global key list
-                gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Determine batch
+                global_keys = list(global_key_to_upload_dict.keys()) # Make a new global key list
+                gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Determine batch
                 existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
     if verbose:
         print(f"Global keys vetted")    
