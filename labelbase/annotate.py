@@ -2,31 +2,49 @@ import uuid
 import json
 from labelbase.masks import mask_to_bytes
 
-def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, mask_method:str="url", divider:str="///"):
+def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, confidence:bool=False, mask_method:str="url", divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation -- note the data row ID is not added here
         Each accepted annotation type and the expected input annotation value is listed below:
+        ** IF confidence == False **
             For tools:
-                bbox            :   [[top, left, height, width], [nested_classification_name_paths], [top, left, height, width], [nested_classification_name_paths]]
-                polygon         :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
-                point           :   [[x, y], [nested_classification_name_paths], [x, y], [nested_classification_name_paths]]
-                mask            :   [[URL, colorRGB], [nested_classification_name_paths], [URL, colorRGB], [nested_classification_name_paths]]
+                bbox            :   [[top, left, height, width], [nested_classification_name_paths]], [[top, left, height, width], [nested_classification_name_paths]]
+                polygon         :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths]], [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths]], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths]]
+                point           :   [(x, y), [nested_classification_name_paths]], [(x, y), [nested_classification_name_paths]]
+                mask            :   [[URL, colorRGB], [nested_classification_name_paths]], [[URL, colorRGB], [nested_classification_name_paths]]
                                             OR
-                                    [[array, colorRGB], [nested_classification_name_paths], [array, colorRGB], [nested_classification_name_paths]]
+                                    [[array, colorRGB], [nested_classification_name_paths]], [[array, colorRGB], [nested_classification_name_paths]]
                                             OR
-                                    [[png_bytes, None], [nested_classification_name_paths], [png_bytes, None], [nested_classification_name_paths]]                                    
-                named-entity    :   [[start, end], [nested_classification_name_paths], [start, end], [nested_classification_name_paths]]
+                                    [[png_bytes, None], [nested_classification_name_paths]], [[png_bytes, None], [nested_classification_name_paths]]                                    
+                named-entity    :   [[(start, end), [nested_classification_name_paths]], [(start, end)], [nested_classification_name_paths]]
             For classifications:
                 radio           :   [[answer_name_paths]]
                 check           :   [[answer_name_paths]]
                 text            :   [[answer_name_paths]] -- the last string in a text name path is the text value itself
+        ** IF confidence == True **                
+            For tools:
+                bbox            :   [[top, left, height, width], [nested_classification_name_paths], confidence_score], [[top, left, height, width], [nested_classification_name_paths], confidence_score]
+                polygon         :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], confidence_score], [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], confidence_score]
+                line            :   [[(x, y), (x, y),...(x, y)], [nested_classification_name_paths], confidence_score], [(x, y), (x, y),...(x, y)], [nested_classification_name_paths], confidence_score]
+                point           :   [(x, y), [nested_classification_name_paths], confidence_score], [(x, y), [nested_classification_name_paths], confidence_score]
+                mask            :   [[URL, colorRGB], [nested_classification_name_paths], confidence_score], [[URL, colorRGB], [nested_classification_name_paths], confidence_score]
+                                            OR
+                                    [[array, colorRGB], [nested_classification_name_paths], confidence_score], [[array, colorRGB], [nested_classification_name_paths], confidence_score]
+                                            OR
+                                    [[png_bytes, None], [nested_classification_name_paths], confidence_score], [[png_bytes, None], [nested_classification_name_paths], confidence_score]                                    
+                named-entity    :   [[(start, end), [nested_classification_name_paths], confidence_score], [(start, end)], [nested_classification_name_paths], confidence_score]
+            For classifications:
+                radio           :   [[answer_name_paths], confidence_score]
+                check           :   [[answer_name_paths], confidence_score]
+                text            :   [[answer_name_paths], confidence_score] -- the last string in a text name path is the text value itself                
     Args:
         data_row_id             :   Required (str) - Labelbox Data Row ID
         top_level_name          :   Required (str) - Name of the top-level tool or classification        
-        annotation_inputs       :   Required (list) - List of annotation value lists where 1 list element must correspond to the following format:        
+        annotation_inputs       :   Required (list) - List of annotation value lists where the list of lists corresponds to the above format:        
         annotation_type         :   Required (str) - Type of annotation in question - must be a string of one of the above options
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+        confidence              :   Optional (bool) - If True, will expect a different format and add confidence scores to each ndjson created
         mask_method             :   Optional (str) - Specifies your input mask data format
                                         - "url" means your mask is an accessible URL (must provide color)
                                         - "array" means your mask is a numpy array (must provide color)
@@ -44,18 +62,20 @@ def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:di
                 top_level_name=top_level_name,
                 annotation_input=annotation_input, 
                 ontology_index=ontology_index, 
+                confidence=confidence,
                 mask_method=mask_method,
                 divider=divider
             ))
     return ndjsons
 
-def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, mask_method:str="url", divider:str="///"):
+def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dict, confidence:bool=False, mask_method:str="url", divider:str="///"):
     """ Returns an ndjson of an annotation given a list of values - the values needed differ depending on the annotation type
     Args:
         top_level_name          :   Required (str) - Name of the top-level tool or classification        
         annotation_input        :   Required (list) - List that corresponds to a single annotation for a label in the specified format
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
+        confidence              :   Optional (bool) - If True, will expect a different format and add confidence scores to each ndjson created                                            
         mask_method             :   Optional (str) - Specifies your input mask data format
                                         - "url" treats annotation input values as URLs uploads them directly
                                         - "array" converts the annotation input values into png bytes
