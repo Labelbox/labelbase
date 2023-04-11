@@ -268,7 +268,7 @@ def batch_upload_annotations(
     else:
         return f"No annotation upload attempted - import method must be wither 'mal' or 'import' - received value {how}"
     # Dictionary where { key=project_id : value= { data_row_id : annotations_list } }
-    project_id_to_upload_list = {}
+    project_id_to_upload_dict = {}
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
         data_row_id = global_key_to_data_row_id[gk]
@@ -281,7 +281,7 @@ def batch_upload_annotations(
                 x = annotation
                 x["dataRow"] = {"id" : data_row_id}
                 annotations_with_data_row_id.append(x)
-        if project_id not in project_id_to_upload_list.keys():
+        if project_id not in project_id_to_upload_dict.keys():
             project_id_to_upload_dict[project_id] = {}
         project_id_to_upload_dict[project_id][data_row_id] = annotations_with_data_row_id
     batch_number = 0        
