@@ -100,9 +100,9 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
     if not x["row_data_col"] and not x["global_key_col"]:
         raise ValueError(f"Must provide either a 'global_key' column or a 'data_row_id' column")
     # global_key defaults to row_data        
-    x["global_key_col"] = x["global_key_col"] if x]"global_key_col"] else x["row_data_col"]
+    x["global_key_col"] = x["global_key_col"] if x["global_key_col"] else x["row_data_col"]
     # external_id defaults to global_key     
-    x["external_id_col"] = x["external_id_col"] if x]"external_id_col"] else x["global_key_col"]
+    x["external_id_col"] = x["external_id_col"] if x["external_id_col"] else x["global_key_col"]
     # Here, we sync the desired metadata to upload with the existing metadata index
     lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
     metadata_types = {
