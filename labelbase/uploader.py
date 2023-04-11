@@ -165,7 +165,7 @@ def batch_create_data_rows(
                     print(f'Success: Upload batch number {batch_number} successful')  
     if verbose:
         print(f'Upload complete - all data rows uploaded')
-    return e, updated_dict
+    return e, upload_dict
 
 def batch_upload_annotations(
     client:labelboxClient, upload_dict:dict, import_name:str=str(uuid.uuid4()), 
