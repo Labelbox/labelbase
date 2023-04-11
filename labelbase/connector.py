@@ -110,7 +110,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
         "datetime" : DataRowMetadataKind.datetime, "number" : DataRowMetadataKind.number
     }
     # If a metadata field name was passed in that doesn't exist, create it in Labelbox
-    if x"[metadata_index"]:
+    if x["metadata_index"]:
         for metadata_field_name in x["metadata_index"].keys():
             metadata_string_type = x["metadata_index"][metadata_field_name]
             if metadata_field_name not in lb_metadata_names:
