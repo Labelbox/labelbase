@@ -199,7 +199,7 @@ def batch_rows_to_project(
     project_id_to_global_keys = {}
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
-        if project_id not in project_id_to_global_key.keys():
+        if project_id not in project_id_to_global_keys.keys():
             project_id_to_global_keys[project_id] = []
         project_id_to_global_keys[project_id].append(gk)
     # Create batches of data rows to projects in batches
