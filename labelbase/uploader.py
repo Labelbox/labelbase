@@ -169,8 +169,8 @@ def batch_create_data_rows(
     return e, upload_dict
 
 def batch_rows_to_project(
-    client:labelboxClient, upload_dict:dict, global_key_to_data_row_id:dict={},
-    priority:int=5, batch_name:str=str(uuid.uuid4()), batch_size:int=1000, verbose:bool=False):
+    client:labelboxClient, upload_dict:dict, priority:int=5, 
+    batch_name:str=str(uuid.uuid4()), batch_size:int=1000, verbose:bool=False):
     """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
     
     upload_dict must be in the following format:
@@ -194,29 +194,26 @@ def batch_rows_to_project(
         Empty list if successful, errors if unsuccessful
     """
     # Default error message 
-    e = "Success"
-    # Get global_key_to_data_row_id if needed
-    if not global_key_to_data_row_id:
-        global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))    
+    e = "Success"  
     # Create a dictionary where { key=project_id : value=list_of_data_row_ids }
-    project_id_to_data_row_ids = {}
+    project_id_to_global_keys = {}
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
-        if project_id not in project_id_to_data_row_ids.keys():
-            project_id_to_data_row_ids[project_id] = []
-        project_id_to_data_row_ids[project_id].append(global_key_to_data_row_id[gk])
+        if project_id not in project_id_to_global_key.keys():
+            project_id_to_global_keys[project_id] = []
+        project_id_to_global_keys[project_id].append(gk)
     # Create batches of data rows to projects in batches
     try:
         batch_number = 0
-        for project_id in project_id_to_data_row_ids:
+        for project_id in project_id_to_global_keys:
             project = client.get_project(project_id)            
-            data_row_ids = project_id_to_data_row_ids[project_id]
+            global_keys = project_id_to_global_keys[project_id]
             if verbose:
-                print(f"Sending {len(data_row_ids)} data rows to project with ID {project_id}")
-            for i in range(0, len(data_row_ids), batch_size):
+                print(f"Sending {len(global_keys)} data rows to project with ID {project_id}")
+            for i in range(0, len(global_keys), batch_size):
                 batch_number += 1
-                subset = data_row_ids[i:] if i+batch_size >= len(data_row_ids) else data_row_ids[i:i+batch_size]
-                project.create_batch(name=f"{batch_name}-{batch_number}", data_rows=subset)
+                subset = global_keys[i:] if i+batch_size >= len(global_keys) else global_keys[i:i+batch_size]
+                project.create_batch(name=f"{batch_name}-{batch_number}", global_keys=subset)
         if verbose:
             print(f"All data rows have been batched to the specified project(s)")
     except Exception as errors:
