@@ -155,6 +155,7 @@ def batch_create_data_rows(
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
             task = dataset.create_data_rows(batch)
+            task.wait_till_done()
             errors = task.errors
             if errors:
                 if verbose: 
