@@ -108,7 +108,7 @@ def batch_create_data_rows(
     if verbose:
         print(f"Vetting global keys")
     for i in range(0, len(global_keys), batch_size): # Check global keys 20k at a time
-        gks = global_keys_list[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Batch of global keys to vet 
+        gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Batch of global keys to vet 
         existing_data_row_to_global_key = check_global_keys(client, gks) # Returns empty list if there are no duplicates
         loop_counter = 0
         while existing_data_row_to_global_key:
@@ -441,11 +441,11 @@ def batch_upload_predictions(
             model_run = client.get_model_run(mrid)
             gk_to_preds = mrid_gk_preds[mrid]
             # Get all data rows IDs for this project
-            global_keys_list = list(gk_to_preds.keys())
+            global_keys = list(gk_to_preds.keys())
             if verbose:
-                print(f"Uploading predictions for {len(list(global_keys_list))} data rows to Model {model_run.model_id}  Run {model.name}")          
-            for i in range(0, len(global_keys_list), batch_size):
-                global_keys = global_keys_list[i:] if i+batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size]
+                print(f"Uploading predictions for {len(list(global_keys))} data rows to Model {model_run.model_id}  Run {model.name}")          
+            for i in range(0, len(global_keys), batch_size):
+                global_keys = global_keys[i:] if i+batch_size >= len(global_keys) else global_keys[i:i+batch_size]
                 upload = []
                 for gk in global_keys:
                     upload.extend(gk_to_preds[gk])
