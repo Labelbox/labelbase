@@ -59,7 +59,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
     # column names should be input_type///
     for column_name in column_names:
         res = column_name.split(divider)
-        if (type(res) == list)) and (len(res) == 3):
+        if (type(res) == list) and (len(res) == 3):
             input_type = column_name.split(divider)[0]
             # Metadata columns --> metadata///metadata_type///metadata_field_name
             if input_type.lower() == "metadata":
