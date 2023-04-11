@@ -46,7 +46,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
     }
     """
     # Default values
-    cols = ["row_data", "global_key", "external_id", "dataset_id", "model_id", "model_run_id"]
+    cols = ["row_data", "global_key", "external_id", "dataset_id", "project_id", "model_id", "model_run_id"]
     x = {f"{c}_col" : "" for c in cols} # Default for cols is "" 
     indexes = ["metadata_index", "attachment_index", "annotation_index", "prediction_index"]    
     x.update({i : {} for i in indexes}) # Default for indexes is {}
