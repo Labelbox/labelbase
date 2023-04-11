@@ -163,7 +163,7 @@ def determine_actions(
         print(f"Warning - attempted ground-truth upload attempted, but no model run / model information was provided - uploading data as submitted labels")
         annotate_action = "import" 
     # Determine what kind of predictions action we're taking, if any
-    predictions_action = False if not prediction_index else True
+    predictions_action = False if not prediction_index or (model_id_col==model_id==model_run_id_col==model_run_id=="") else True
     return {
       "create" : create_action, "batch" : batch_action, "metadata" : metadata_action, 
       "attachments" : attachment_action, "annotate" : annotate_action, "predictions" : predictions_action
