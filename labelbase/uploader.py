@@ -144,7 +144,7 @@ def batch_create_data_rows(
     # Perform uploads grouped by dataset ID
     for dataset_id in dataset_id_to_upload_list:
         dataset = client.get_dataset(dataset_id)       
-        upload_list = dataset_id_to_upload_list[dataset]
+        upload_list = dataset_id_to_upload_list[dataset_id]
         if verbose:
             print(f'Beginning data row upload for Dataset with ID {dataset_id} - uploading {len(upload_list)} data rows')
         batch_number = 0
