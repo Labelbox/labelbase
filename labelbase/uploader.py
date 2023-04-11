@@ -301,7 +301,7 @@ def batch_upload_annotations(
                 upload.extend(data_row_id_to_upload[drid])
             batch_number += 1
             if verbose:
-                print(f"Batch #{batch_number}: {len(upload)} annotations for {len(data_row_ids_batch)} data rows")
+                print(f"Batch #{batch_number}: {len(upload)} annotations for {len(data_row_ids)} data rows")
             # Upload annotations
             import_request = upload_protocol.create_from_objects(client, project_id, f"{import_name}-{batch_number}", upload)
             errors = import_request.errors
