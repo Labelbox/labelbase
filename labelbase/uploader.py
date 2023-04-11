@@ -214,7 +214,7 @@ def batch_upload_annotations(
     # Dictionary where { key=project_id : value= { data_row_id : annotations_list } }
     project_id_to_upload_list = {}
     for gk in upload_dict:
-        project_id = upload_dict[gk]["project_id"]]
+        project_id = upload_dict[gk]["project_id"]
         data_row_id = upload_dict[gk]["annotations"][0]["dataRow"]["id"]
         annotations = upload_dict[gk]["annotations"]
         if project_id not in project_id_to_upload_list.keys():
