@@ -102,7 +102,7 @@ def batch_create_data_rows(
         
     """
     # Default error message    
-    e = [] 
+    e = "Success"
     # Vet all global keys
     global_keys = list(upload_dict.keys()) # Get all global keys
     if verbose:
@@ -196,7 +196,7 @@ def batch_upload_annotations(
         A list of errors if there is one - if empty list, upload was successful
     """
     # Default error message 
-    e = [] 
+    e = "Success" 
     # Determine the upload type
     if how.lower() == "mal":
         from labelbox import MALPredictionImport as upload_protocol
@@ -274,7 +274,7 @@ def batch_rows_to_project(
         Empty list if successful, errors if unsuccessful
     """
     # Default error message 
-    e = [] 
+    e = "Success"
     # Create a dictionary where { key=project_id : value=list_of_data_row_ids }
     project_id_to_data_row_ids = {}
     global_key_to_data_row_id = create_global_key_to_data_row_id_dict(client=client, global_keys=list(upload_dict.keys()))
@@ -324,7 +324,7 @@ def batch_add_data_rows_to_model_run(
         Empty list if successful, errors if unsuccessful    
     """
     # Default error message     
-    e = []
+    e = "Success"
     try:        
         # Dictionary where { key=model_run_id : list_of_global_keys }
         model_run_to_global_keys = {}
@@ -370,7 +370,7 @@ def batch_add_ground_truth_to_model_run(
         Empty list if successful, errors if unsuccessful    
     """
     # Default error message     
-    e = []
+    e = "Success"
     try:        
         # Dictionary where { key=project_id : value=list_of_global_keys }
         project_id_to_global_keys = {}
@@ -429,7 +429,7 @@ def batch_upload_predictions(
         Empty list if successful, errors if unsuccessful    
     """
     # Default error message     
-    e = []
+    e = "Success"
     try:
         # Dictionary where { key=model_run_id : value={key=global_key : value=list_of_prediction_ndjsons} } -- mrid_gk_preds
         mrid_gk_preds = {}
