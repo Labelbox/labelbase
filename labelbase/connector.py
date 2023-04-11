@@ -168,31 +168,3 @@ def determine_actions(
       "create" : create_action, "batch" : batch_action, "metadata" : metadata_action, 
       "attachments" : attachment_action, "annotate" : annotate_action, "predictions" : predictions_action
     }
-  
-def validate_column_name_change(old_col_name:str, new_col_name:str, existing_col_names:list):
-    """ Validates that the rename aligns with LabelPandas column name specifications
-    Args:
-        old_col_name                :   Required (str) - Original column name
-        new_col_name                :   Required (str) - Desired new name
-        existing_col_names          :   Required (list) - List of existing column names
-    Returns:
-        Nothing - 
-        - Will raise an error if the old column name isn't in the passed in DataFrame
-        - Will also raise an error if the new column name isn't what LabelPandas is expecting
-    """ 
-    if old_col_name not in existing_col_names:
-        raise ValueError(f"Argument `rename_dict` requires a dictionary where:\n            \n        `old_column_name` : `new_column_name`,\n        `old_column_name` : `new_column_name`\n    \nReceived key `{old_col_name}` which is not an existing column name")    
-    if new_col_name in ["row_data", "external_id", "global_key", "file_path"]:
-        valid_column = True
-    elif new_col_name.startswith("metadata"):
-        valid_column = True
-    elif new_col_name.startswith("attachment"):
-        valid_column = True
-    elif new_col_name.startswith("annotation"):
-        valid_column = True   
-    elif new_col_name.startswith("prediction"):
-        valid_column = True           
-    else:
-        valid_column = False
-    if not valid_column:
-        raise ValueError(f"New name assignment invalid for LabelPandas - colmn name must be one of `row_data`, `external_id`, `global_key` or `file_name` or start with `metadata`, `attachment`, `annotation` or `prediction` -- received new column name `{new_col_name}`")  
