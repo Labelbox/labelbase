@@ -137,9 +137,10 @@ def batch_create_data_rows(
     # Dictionary where { key=dataset_id : value=list_of_uploads }
     dataset_id_to_upload_list = {}
     for gk in upload_dict:
-        if gk["dataset_id"] not in dataset_id_to_upload_list.keys():
-            dataset_id_to_upload_list[gk["dataset_id"]] = []
-        dataset_id_to_upload_list[gk["dataset_id"]].append(upload_dict[gk]["data_row"])
+        dataset_id = upload_dict[gk]["dataset_id"]
+        if dataset_id not in dataset_id_to_upload_list.keys():
+            dataset_id_to_upload_list[dataset_id] = []
+        dataset_id_to_upload_list[dataset_id].append(upload_dict[gk]["data_row"])
     # Perform uploads grouped by dataset ID
     for dataset_id in dataset_id_to_upload_list:
         dataset = client.get_dataset(dataset_id)       
