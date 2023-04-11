@@ -90,6 +90,8 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
     }  
     # Catches tools
     if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
+        if confidence:
+            ndjson["confidence"] = annotation_input[2] if len(annotation_input) == 3 else 0.0
         ndjson["name"] = top_level_name
         if annotation_type == "bbox":
             ndjson[annotation_type] = {"top":annotation_input[0][0],"left":annotation_input[0][1],"height":annotation_input[0][2],"width":annotation_input[0][3]}
@@ -125,11 +127,13 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
         ndjson.update(
             classification_builder(
                 classification_path=top_level_name, 
-                answer_paths=annotation_input,
+                answer_paths=[annotation_input[0]],
                 ontology_index=ontology_index,
                 divider=divider
             )
         )
+        if confidence:
+            ndjson["confidence"] = annotation_input[1] if len(annotation_input) == 2 else 0.0        
     return ndjson   
 
 def pull_first_name_from_paths(name_paths:list, divider:str="///"):
@@ -168,19 +172,28 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
     """ Given a classification path and all its child paths, constructs an ndjson.
         If the classification answer's paths have nested classifications, will recursuively call this function.
     """
+    # Determine full classification path, including tool name
     index_input = f"{tool_name}{divider}{classification_path}" if tool_name else classification_path
-    c_type = ontology_index[index_input]["type"]
-    c_name = classification_path.split(divider)[-1] if divider in classification_path else classification_path
+    # Determine the classification type from full classification path
+    c_type = ontology_index[index_input]["type"] 
+    # Get the current classification name at the end of full classification path
+    c_name = classification_path.split(divider)[-1] if divider in classification_path else classification_path 
+    # Initiate your classification ndjson
     classification_ndjson = {
         "name" : c_name
     }
+    # If this is a radio, there's only one answer
     if c_type == "radio":
+        # For the current classification, get the first answer path where the current classification is the parent feature
         answer_name = pull_first_name_from_paths(name_paths=answer_paths, divider=divider)[0]
         classification_ndjson["answer"] = {
             "name" : answer_name
         }
+        # For the current answer, get all nested classification paths where the current answer is the parent feature 
         n_c_paths = get_child_paths(first=answer_name, name_paths=answer_paths, divider=divider)
+        # Get the current nested classification names
         n_c_names = pull_first_name_from_paths(name_paths=n_c_paths, divider=divider)
+        # For each nested classification path, loop this process, finding answers and nested classifications
         for n_c_name in n_c_names:
             if n_c_name:
                 if "classifications" not in classification_ndjson["answer"].keys():
@@ -195,15 +208,21 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                         divider=divider
                     )
                 )
+    # If this is a checklist, there are potentially multiple answers
     elif c_type == "checklist":
         classification_ndjson["answers"] = []
+        # For the current classification, get all answer paths where the current classification is the parent feature        
         answer_names = pull_first_name_from_paths(name_paths=answer_paths, divider=divider)
+        # For each current answer....
         for answer_name in answer_names:
             answer_ndjson = {
                 "name" : answer_name
             }
+            # For the current answer, get all nested classification paths where the current answer is the parent feature                
             n_c_paths = get_child_paths(first=answer_name, name_paths=answer_paths, divider=divider)
+            # Get the current nested classification names            
             n_c_names = pull_first_name_from_paths(name_paths=n_c_paths, divider=divider)
+            # For each nested classification path, loop this process, finding answers and nested classifications                             
             for n_c_name in n_c_names:
                 if n_c_name:
                     if "classifications" not in answer_ndjson.keys():
@@ -219,6 +238,7 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
                         )
                     )
             classification_ndjson["answers"].append(answer_ndjson)
+    # If this is text, there the answer is whatever is at the end of the current answer path
     else:
         classification_ndjson["answer"] = answer_paths[0]
     return classification_ndjson  
