@@ -190,7 +190,9 @@ def validate_column_name_change(old_col_name:str, new_col_name:str, existing_col
         valid_column = True
     elif new_col_name.startswith("annotation"):
         valid_column = True   
+    elif new_col_name.startswith("prediction"):
+        valid_column = True           
     else:
         valid_column = False
     if not valid_column:
-        raise ValueError(f"New name assignment invalid for LabelPandas - colmn name must be one of `row_data`, `external_id` or `global_key` or start with `metadata`, `attachment` or `annotation` -- received new column name `{new_col_name}`")  
+        raise ValueError(f"New name assignment invalid for LabelPandas - colmn name must be one of `row_data`, `external_id`, `global_key` or `file_name` or start with `metadata`, `attachment`, `annotation` or `prediction` -- received new column name `{new_col_name}`")  
