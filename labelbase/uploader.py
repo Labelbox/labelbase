@@ -208,7 +208,7 @@ def batch_rows_to_project(
     # Create batches of data rows to projects in batches
     try:
         batch_number = 0
-        for project_id in project_id_to_batch_dict:
+        for project_id in project_id_to_data_row_ids:
             project = client.get_project(project_id)            
             data_row_ids = project_id_to_data_row_ids[project_id]
             if verbose:
