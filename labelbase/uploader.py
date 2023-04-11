@@ -106,7 +106,6 @@ def batch_create_data_rows(
     # Vet all global keys
     global_keys = list(upload_dict.keys()) # Get all global keys
     if verbose:
-        print(f"Beginning upload for Dataset with ID {dataset_id}")
         print(f"Vetting global keys")
     for i in range(0, len(global_keys_list), batch_size): # Check global keys 20k at a time
         gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size] # Batch of global keys to vet 
