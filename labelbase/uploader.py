@@ -129,7 +129,7 @@ def batch_create_data_rows(
                     upload_value["data_row"]["global_key"] = new_gk # Update global key value in data row
                     del upload_dict[egk] # Delete old global key
                     upload_dict[new_gk] = upload_value # Replace with new data row / global key
-                global_keys = list(global_key_to_upload_dict.keys()) # Make a new global key list
+                global_keys = list(upload_dict.keys()) # Make a new global key list
                 gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Determine batch
                 existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
     if verbose:
