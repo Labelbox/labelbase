@@ -166,5 +166,5 @@ def determine_actions(
     predictions_action = False if not prediction_index or (model_id_col==model_id==model_run_id_col==model_run_id=="") else True
     return {
       "create" : create_action, "batch" : batch_action, "metadata" : metadata_action, 
-      "attachments" : attachment_action, "annotate" : annotate_action, "predictions" : predictions_action
+      "attachments" : attachments_action, "annotate" : annotate_action, "predictions" : predictions_action
     }
