@@ -136,6 +136,7 @@ def batch_create_data_rows(
         print(f"Global keys vetted")    
     # Dictionary where { key=dataset_id : value=list_of_uploads }
     dataset_id_to_upload_list = {}
+    print(upload_dict)
     for gk in upload_dict:
         dataset_id = upload_dict[gk]["dataset_id"]
         if dataset_id not in dataset_id_to_upload_list.keys():
