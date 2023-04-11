@@ -289,7 +289,7 @@ def batch_upload_annotations(
     for project_id in project_id_to_upload_dict:
         data_row_id_to_upload = project_id_to_upload_dict[project_id]
         # Get all data rows IDs to upload annotations for in this project
-        data_row_ids_list = list(data_row_id_to_upload_dict.keys())
+        data_row_ids_list = list(data_row_id_to_upload.keys())
         if verbose:
             print(f"Uploading annotations for {len(data_row_ids_list)} data rows to project with ID {project_id}")          
         for i in range(0, len(data_row_ids_list), batch_size):
