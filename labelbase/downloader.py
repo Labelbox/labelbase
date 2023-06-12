@@ -5,7 +5,7 @@ from labelbase.metadata import get_metadata_schema_to_name_key, get_metadata_sch
 from labelbase.annotate import flatten_label
 
 def export_and_flatten_labels(client:labelboxClient, project, include_metadata:bool=True, include_performance:bool=True, 
-    include_agreement:bool=False, verbose:bool=False, mask_method:str="png", divider="///", lb_api_key:str="", export_filters:dict=None):
+    include_agreement:bool=False, verbose:bool=False, mask_method:str="png", divider="///", export_filters:dict=None):
     """ Exports and flattens labels from a Labelbox Project
     Args:
         client:                 :   Required (labelbox.Client) - Labelbox Client object
@@ -19,8 +19,6 @@ def export_and_flatten_labels(client:labelboxClient, project, include_metadata:b
                                         - "array" converts URLs to numpy arrays
                                         - "png" converts URLs to png byte strings        
         divider                 :   Optional (str) - String delimiter for schema name keys and suffix added to duplocate global keys 
-        lb_api_key              :   Required (str) - Labelbox API key, only required if exporting a project with masks as accessing the mask URL requires
-                                        API key in the request header
         export_filters          :   Optional (dict) - Filters for project export
                                         - "last_activity_at": [<start_date>, <end_date>] formatted as YYYY-MM-DD or YYYY-MM-DD hh:mm:ss, or None
                                         - "label_created_at": [<start_date>, <end_date>] formatted as YYYY-MM-DD or YYYY-MM-DD hh:mm:ss, or None
@@ -71,7 +69,7 @@ def export_and_flatten_labels(client:labelboxClient, project, include_metadata:b
                     flat_label["external_id"] = label['data_row']['external_id']
                 else:
                     flat_label["external_id"] = None
-                res = flatten_label(label_dict=nested_label, ontology_index=ontology_index, datarow_id=label['data_row']['id'], mask_method=mask_method, divider=divider, lb_api_key=lb_api_key)            
+                res = flatten_label(client=client, label_dict=nested_label, ontology_index=ontology_index, datarow_id=label['data_row']['id'], mask_method=mask_method, divider=divider)            
                 for key, val in res.items():
                     flat_label[f"annotation{divider}{str(key)}"] = val
                 if include_agreement:

@@ -2,6 +2,8 @@ import uuid
 import json
 from labelbase.masks import mask_to_bytes
 
+from labelbox import Client as labelboxClient
+
 def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, confidence:bool=False, mask_method:str="url", divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation -- note the data row ID is not added here
         Each accepted annotation type and the expected input annotation value is listed below:
@@ -284,7 +286,7 @@ def get_leaf_paths(classifications, current_path="", divider="///"):
     return name_paths
                     
 
-def flatten_label(label_dict:dict, ontology_index:dict, lb_api_key:str="", datarow_id:str="", mask_method:str="url", divider:str="///"):
+def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, datarow_id:str="", mask_method:str="url", divider:str="///"):
     """ For a label from project.export_v2(), creates a flat dictionary where:
             { key = annotation_type + divider + annotation_name  :  value = [annotation_value, list_of_nested_name_paths]}
         Each accepted annotation type and the expected output annotation value is listed below:
@@ -304,11 +306,10 @@ def flatten_label(label_dict:dict, ontology_index:dict, lb_api_key:str="", datar
                 check           :   [[answer_name_paths]]
                 text            :   [[answer_name_paths]] -- the last string in a text name path is the text value itself
     Args:    
+        client                  :   Required        - Labelbox client
         label_dict              :   Required (dict) - Dictionary representation of a label from project.export_labels(download=True)
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
-        lb_api_key              :   Required (str) - Labelbox API key, only required if exporting a project with masks as accessing the mask URL requires
-                                        API key in the request header
         datarow_id              :   Required (str) - Datarow id, only required for datarows with mask annotations
         mask_method             :   Optional (str) - Specifies your desired mask data format
                                         - "url" leaves masks as-is
@@ -344,10 +345,10 @@ def flatten_label(label_dict:dict, ontology_index:dict, lb_api_key:str="", datar
                 if mask_method == "url":
                     annotation_value = [obj['mask']["url"], [255,255,255]]
                 elif mask_method == "array": 
-                    array = mask_to_bytes(input=obj['mask']["url"], datarow_id=datarow_id, lb_api_key=lb_api_key, method="url", color=[255,255,255], output="array")
+                    array = mask_to_bytes(client=client, input=obj['mask']["url"], datarow_id=datarow_id, method="url", color=[255,255,255], output="array")
                     annotation_value = [array, [255,255,255]]
                 else:
-                    png = mask_to_bytes(input=obj['mask']["url"], datarow_id=datarow_id, lb_api_key=lb_api_key, method="url", color=[255,255,255], output="png")
+                    png = mask_to_bytes(client=client, input=obj['mask']["url"], datarow_id=datarow_id, method="url", color=[255,255,255], output="png")
                     annotation_value = [png, "null"]
             if "classifications" in obj.keys():
                 if len(obj['classifications']) > 0:

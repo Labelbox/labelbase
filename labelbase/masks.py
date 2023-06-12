@@ -4,13 +4,14 @@ from io import BytesIO
 import requests
 from labelbox.data import annotation_types as lb_types
 from labelbox.data.serialization import NDJsonConverter
+from labelbox import Client as labelboxClient
 
-def mask_to_bytes(input:str, datarow_id:str, lb_api_key:str, method:str="url", color=[255,255,255], output:str="png"):
+def mask_to_bytes(client:labelboxClient, input:str, datarow_id:str, method:str="url", color=[255,255,255], output:str="png"):
     """ Given a mask input, returns a png bytearray of said mask
     Args:
+        client      :   Required       - Labelbox client
         input       :   Required (str) - URL of a mask
         datarow_id  :   Required (str) - Datarow id that has the mask annotation
-        lb_api_key  :   Required (str) - Labelbox API key is required to get the mask from the URL
         method      :   Required (str) - Either "url" or "array" - determines how you want the input treated
         color       :   Required (arr or int) - The color of your mask in your input value
         output      :   Required (str) - Either "array" or "png" - determines how you want the data returned
@@ -25,7 +26,7 @@ def mask_to_bytes(input:str, datarow_id:str, lb_api_key:str, method:str="url", c
     # Either download a mask URL or ensure the shape of your numpy array
     if method == "url":
         headers = {
-            "Authorization": f"Bearer {lb_api_key}"
+            "Authorization": f"Bearer {client.api_key}"
         }
         r = requests.get(input, headers=headers).content
         np_mask = np.array(Image.open(BytesIO(r)))[:,:,:3]
