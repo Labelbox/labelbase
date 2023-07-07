@@ -53,7 +53,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
     # Accepted values
     accepted_metadata_types = ["enum", "string", "datetime", "number"]
     accepted_attachment_types = ["IMAGE", "VIDEO", "RAW_TEXT", "HTML", "TEXT_URL"]
-    accepted_annotation_types = ["bbox", "polygon", "point", "mask", "line", "named-entity", "radio", "checklist", "text"]
+    accepted_annotation_types = ["bbox", "polygon", "point", "mask", "line", "named-entity", "radio", "checklist", "text", "geo_bbox", "geo_polygon", "geo_point", "geo_line"]
     # Get table column names
     column_names = get_columns_function(table=table, extra_client=extra_client)
     # column names should be input_type///

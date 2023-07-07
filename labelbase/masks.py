@@ -6,6 +6,15 @@ from labelbox.data import annotation_types as lb_types
 from labelbox.data.serialization import NDJsonConverter
 from labelbox import Client as labelboxClient
 
+def get_mask_from_url(url, headers, max_retries=5, n=0):
+    try:
+        if n >= max_retries:
+            return
+        r = requests.get(url, headers=headers).content
+        return np.array(Image.open(BytesIO(r)))[:,:,:3]
+    except:
+        return get_mask_from_url(url, headers, max_retries, n=n+1)
+
 def mask_to_bytes(client:labelboxClient, input:str, datarow_id:str, method:str="url", color=[255,255,255], output:str="png"):
     """ Given a mask input, returns a png bytearray of said mask
     Args:
@@ -28,8 +37,7 @@ def mask_to_bytes(client:labelboxClient, input:str, datarow_id:str, method:str="
         headers = {
             "Authorization": f"Bearer {client.api_key}"
         }
-        r = requests.get(input, headers=headers).content
-        np_mask = np.array(Image.open(BytesIO(r)))[:,:,:3]
+        np_mask = get_mask_from_url(input, headers)
     else:
         if len(input.shape) == 3:
             np_mask = input

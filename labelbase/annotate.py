@@ -3,6 +3,7 @@ import json
 from labelbase.masks import mask_to_bytes
 
 from labelbox import Client as labelboxClient
+import labelbox as lb
 
 def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, confidence:bool=False, mask_method:str="url", divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation -- note the data row ID is not added here
@@ -87,15 +88,37 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
         NDJSON representation of an annotation
     """
     annotation_type = ontology_index[top_level_name]["type"]
+    if ontology_index['project_type'] == str(lb.MediaType.Geospatial_Tile):
+        annotation_type = 'geo_' + annotation_type
+
     ndjson = {
         "uuid" : str(uuid.uuid4())
     }  
     # Catches tools
-    if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
+    if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity", "geo_bbox", "geo_polygon", "geo_line", "geo_point"]:
         if confidence:
             ndjson["confidence"] = annotation_input[2] if len(annotation_input) == 3 else 0.0
         ndjson["name"] = top_level_name
-        if annotation_type == "bbox":
+        if annotation_type == "geo_bbox":
+                ndjson['bbox'] = {
+                    'top': annotation_input[0][0][1][1],
+                    'left': annotation_input[0][0][1][0],
+                    'height': annotation_input[0][0][3][1] - annotation_input[0][0][1][1],        
+                    'width': annotation_input[0][0][3][0] - annotation_input[0][0][1][0]
+                }
+        elif annotation_type == "geo_polygon":
+            polygon_points_ndjson = []
+            for sub in annotation_input[0][0]:
+                polygon_points_ndjson.append({"x":sub[0], "y":sub[1]})
+            ndjson["polygon"] = polygon_points_ndjson
+        elif annotation_type == "geo_line":
+            line_points_ndjson = []
+            for sub in annotation_input[0]:
+                line_points_ndjson.append({"x":sub[0], "y":sub[1]})
+            ndjson["line"] = line_points_ndjson
+        elif annotation_type == "geo_point":
+            ndjson["point"] = {'x':annotation_input[0][0], 'y':annotation_input[0][1]}
+        elif annotation_type == "bbox":
             ndjson[annotation_type] = {"top":annotation_input[0][0],"left":annotation_input[0][1],"height":annotation_input[0][2],"width":annotation_input[0][3]}
         elif annotation_type in ["polygon", "line"]:
             ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[0]]     
@@ -110,7 +133,7 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
             else: # Only one left is png
                 ndjson[annotation_type] = {"png":annotation_input[0][0]}
         else: # Only one left is named-entity 
-            ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
+            ndjson['data']["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
             ndjson["classifications"] = []
             classification_names = pull_first_name_from_paths(name_paths=annotation_input[1], divider=divider)
@@ -328,6 +351,8 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
             annotation_type = ontology_index[obj["name"]]["type"]
             annotation_type = "mask" if annotation_type == "raster-segmentation" else annotation_type
             annotation_type = "bbox" if annotation_type == "rectangle" else annotation_type
+            if 'geojson' in obj.keys():
+                annotation_type = 'geo_' + annotation_type
             column_name = f'{annotation_type}{divider}{obj["name"]}'           
             if column_name not in flat_label.keys():
                 flat_label[column_name] = []
@@ -339,8 +364,10 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
                 annotation_value = [[coord["x"], coord["y"]] for coord in obj["line"]]
             elif "point" in obj.keys():
                 annotation_value = [obj["point"]["x"], obj["point"]["y"]]
-            elif "location" in obj.keys():
-                annotation_value = [obj["location"]["start"], obj["location"]["end"]]
+            elif "data" in obj.keys():
+                annotation_value = [obj['data']["location"]["start"], obj['data']["location"]["end"]]
+            elif "geojson" in obj.keys():
+                annotation_value = obj['geojson']['coordinates']
             else:
                 if mask_method == "url":
                     annotation_value = [obj['mask']["url"], [255,255,255]]
@@ -352,7 +379,6 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
                     annotation_value = [png, "null"]
             if "classifications" in obj.keys():
                 if len(obj['classifications']) > 0:
-                    print("getting sub classifications")
                     return_paths = get_leaf_paths(
                         classifications=obj["classifications"], 
                         divider=divider
@@ -368,12 +394,10 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
             classifications=classifications, 
             divider=divider
         )
-        print(leaf_paths)
         classification_names = pull_first_name_from_paths(
             name_paths=leaf_paths, 
             divider=divider
         )
-        print(classification_names)
         for classification_name in classification_names:
             annotation_type = ontology_index[classification_name]["type"]
             child_paths = get_child_paths(first=classification_name, name_paths=leaf_paths, divider=divider)
