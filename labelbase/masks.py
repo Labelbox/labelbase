@@ -4,14 +4,26 @@ from io import BytesIO
 import requests
 from labelbox.data import annotation_types as lb_types
 from labelbox.data.serialization import NDJsonConverter
+from labelbox import Client as labelboxClient
 
-def mask_to_bytes(input:str, method:str="url", color=[255,255,255], output:str="png"):
+def get_mask_from_url(url, headers, max_retries=5, n=0):
+    try:
+        if n >= max_retries:
+            return
+        r = requests.get(url, headers=headers).content
+        return np.array(Image.open(BytesIO(r)))[:,:,:3]
+    except:
+        return get_mask_from_url(url, headers, max_retries, n=n+1)
+
+def mask_to_bytes(client:labelboxClient, input:str, datarow_id:str, method:str="url", color=[255,255,255], output:str="png"):
     """ Given a mask input, returns a png bytearray of said mask
     Args:
-        input     :   Required (str) - URL of a mask
-        method    :   Required (str) - Either "url" or "array" - determines how you want the input treated
-        color     :   Required (arr or int) - The color of your mask in your input value
-        output    :   Required (str) - Either "array" or "png" - determines how you want the data returned
+        client      :   Required       - Labelbox client
+        input       :   Required (str) - URL of a mask
+        datarow_id  :   Required (str) - Datarow id that has the mask annotation
+        method      :   Required (str) - Either "url" or "array" - determines how you want the input treated
+        color       :   Required (arr or int) - The color of your mask in your input value
+        output      :   Required (str) - Either "array" or "png" - determines how you want the data returned
     Returns:
         Mask as a numpy array or as string png bytes
     """
@@ -22,8 +34,10 @@ def mask_to_bytes(input:str, method:str="url", color=[255,255,255], output:str="
         raise ValueError(f'Downloading bytes requires output method to be either a "png" or a "array" - received method {method}')     
     # Either download a mask URL or ensure the shape of your numpy array
     if method == "url":
-        r = requests.get(input).content
-        np_mask = np.array(Image.open(BytesIO(r)))[:,:,:3]
+        headers = {
+            "Authorization": f"Bearer {client.api_key}"
+        }
+        np_mask = get_mask_from_url(input, headers)
     else:
         if len(input.shape) == 3:
             np_mask = input
@@ -42,7 +56,7 @@ def mask_to_bytes(input:str, method:str="url", color=[255,255,255], output:str="
         return np_mask
     else:
         mask_label = lb_types.Label(
-            data=lb_types.ImageData(uid=""),
+            data=lb_types.ImageData(uid=datarow_id),
             annotations=[
                 lb_types.ObjectAnnotation(
                     name="", 

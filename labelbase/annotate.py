@@ -2,6 +2,9 @@ import uuid
 import json
 from labelbase.masks import mask_to_bytes
 
+from labelbox import Client as labelboxClient
+import labelbox as lb
+
 def create_ndjsons(top_level_name:str, annotation_inputs:list, ontology_index:dict, confidence:bool=False, mask_method:str="url", divider:str="///"):
     """ From an annotation in the expected format, creates a Labelbox NDJSON of that annotation -- note the data row ID is not added here
         Each accepted annotation type and the expected input annotation value is listed below:
@@ -85,15 +88,37 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
         NDJSON representation of an annotation
     """
     annotation_type = ontology_index[top_level_name]["type"]
+    if ontology_index['project_type'] == str(lb.MediaType.Geospatial_Tile):
+        annotation_type = 'geo_' + annotation_type
+
     ndjson = {
         "uuid" : str(uuid.uuid4())
     }  
     # Catches tools
-    if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity"]:
+    if annotation_type in ["bbox", "polygon", "line", "point", "mask", "named-entity", "geo_bbox", "geo_polygon", "geo_line", "geo_point"]:
         if confidence:
             ndjson["confidence"] = annotation_input[2] if len(annotation_input) == 3 else 0.0
         ndjson["name"] = top_level_name
-        if annotation_type == "bbox":
+        if annotation_type == "geo_bbox":
+                ndjson['bbox'] = {
+                    'top': annotation_input[0][0][1][1],
+                    'left': annotation_input[0][0][1][0],
+                    'height': annotation_input[0][0][3][1] - annotation_input[0][0][1][1],        
+                    'width': annotation_input[0][0][3][0] - annotation_input[0][0][1][0]
+                }
+        elif annotation_type == "geo_polygon":
+            polygon_points_ndjson = []
+            for sub in annotation_input[0][0]:
+                polygon_points_ndjson.append({"x":sub[0], "y":sub[1]})
+            ndjson["polygon"] = polygon_points_ndjson
+        elif annotation_type == "geo_line":
+            line_points_ndjson = []
+            for sub in annotation_input[0]:
+                line_points_ndjson.append({"x":sub[0], "y":sub[1]})
+            ndjson["line"] = line_points_ndjson
+        elif annotation_type == "geo_point":
+            ndjson["point"] = {'x':annotation_input[0][0], 'y':annotation_input[0][1]}
+        elif annotation_type == "bbox":
             ndjson[annotation_type] = {"top":annotation_input[0][0],"left":annotation_input[0][1],"height":annotation_input[0][2],"width":annotation_input[0][3]}
         elif annotation_type in ["polygon", "line"]:
             ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[0]]     
@@ -108,7 +133,7 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
             else: # Only one left is png
                 ndjson[annotation_type] = {"png":annotation_input[0][0]}
         else: # Only one left is named-entity 
-            ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
+            ndjson['data']["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
             ndjson["classifications"] = []
             classification_names = pull_first_name_from_paths(name_paths=annotation_input[1], divider=divider)
@@ -243,8 +268,49 @@ def classification_builder(classification_path:str, answer_paths:list, ontology_
         classification_ndjson["answer"] = answer_paths[0]
     return classification_ndjson  
 
-def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict, mask_method:str="url", divider:str="///"):
-    """ For a label from project.export_labels(download=True), creates a flat dictionary where:
+def get_leaf_paths(classifications, current_path="", divider="///"):
+    """ Given a flat list of labelox export classifications, constructs leaf name paths given a divider
+    Args:
+        classifications         :   Required (list) - List of classifications from exported label
+        current_path            :   Optional (str) - Used to recursively build name paths for nested classifications
+        divider                 :   Optional (str) - String delimiter for name paths
+    Returns:
+        List of all leaf name paths 
+    """
+    name_paths = []
+    for classification in classifications:
+        if current_path == "":
+            name_path = classification['name']
+        else:
+            name_path = f"{current_path}{divider}{classification['name']}"
+        if "text_answer" in classification.keys():
+            name_path = f"{name_path}{divider}{classification['text_answer']['content']}"
+            name_paths.append(name_path)
+        if "checklist_answers" in classification.keys():
+            for answer in classification['checklist_answers']:
+                new_path = f"{name_path}{divider}{answer['name']}"
+                if "classifications" in answer.keys():
+                    if len(answer['classifications']) > 0:
+                        name_paths += get_leaf_paths(answer['classifications'], current_path=new_path, divider=divider)
+                    else:
+                        name_paths.append(new_path)
+                else:
+                    name_paths.append(new_path)
+        if "radio_answer" in classification.keys():
+            answer = classification['radio_answer']
+            new_path = f"{name_path}{divider}{answer['name']}"
+            if "classifications" in answer.keys():
+                if len(answer['classifications']) > 0:
+                    name_paths += get_leaf_paths(answer['classifications'], current_path=new_path, divider=divider)
+                else:
+                    name_paths.append(new_path)
+            else:
+                name_paths.append(new_path)
+    return name_paths
+                    
+
+def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, datarow_id:str="", mask_method:str="url", divider:str="///"):
+    """ For a label from project.export_v2(), creates a flat dictionary where:
             { key = annotation_type + divider + annotation_name  :  value = [annotation_value, list_of_nested_name_paths]}
         Each accepted annotation type and the expected output annotation value is listed below:
             For tools:
@@ -263,11 +329,11 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
                 check           :   [[answer_name_paths]]
                 text            :   [[answer_name_paths]] -- the last string in a text name path is the text value itself
     Args:    
+        client                  :   Required        - Labelbox client
         label_dict              :   Required (dict) - Dictionary representation of a label from project.export_labels(download=True)
         ontology_index          :   Required (dict) - Dictionary created from running:
                                             labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=True, detailed=True)
-        schema_to_name_path     :   Required (dict) - Dictionary where {key=schema_id : value=feature_name_path} created from running:
-                                            labelbase.ontology.get_ontology_schema_to_name_path(ontology, divider=divider, invert=False, detailed=False)
+        datarow_id              :   Required (str) - Datarow id, only required for datarows with mask annotations
         mask_method             :   Optional (str) - Specifies your desired mask data format
                                         - "url" leaves masks as-is
                                         - "array" converts URLs to numpy arrays
@@ -277,50 +343,55 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
         Dictionary with one key per annotation class in a given label in the specified format written above
     """
     flat_label = {}
-    annotations = label_dict["Label"]
+    annotations = label_dict['annotations']
     objects = annotations["objects"]
     classifications = annotations["classifications"]
     if objects:
         for obj in objects:
-            annotation_type = ontology_index[obj["title"]]["type"]
+            annotation_type = ontology_index[obj["name"]]["type"]
             annotation_type = "mask" if annotation_type == "raster-segmentation" else annotation_type
             annotation_type = "bbox" if annotation_type == "rectangle" else annotation_type
-            column_name = f'{annotation_type}{divider}{obj["title"]}'           
+            if 'geojson' in obj.keys():
+                annotation_type = 'geo_' + annotation_type
+            column_name = f'{annotation_type}{divider}{obj["name"]}'           
             if column_name not in flat_label.keys():
                 flat_label[column_name] = []
-            if "bbox" in obj.keys():
-                annotation_value = [obj["bbox"]["top"], obj["bbox"]["left"], obj["bbox"]["height"], obj["bbox"]["width"]]
+            if "bounding_box" in obj.keys():
+                annotation_value = [obj["bounding_box"]["top"], obj["bounding_box"]["left"], obj["bounding_box"]["height"], obj["bounding_box"]["width"]]
             elif "polygon" in obj.keys():
                 annotation_value = [[coord["x"], coord["y"]] for coord in obj["polygon"]]
             elif "line" in obj.keys():
                 annotation_value = [[coord["x"], coord["y"]] for coord in obj["line"]]
             elif "point" in obj.keys():
                 annotation_value = [obj["point"]["x"], obj["point"]["y"]]
-            elif "location" in obj.keys():
-                annotation_value = [obj["location"]["start"], obj["location"]["end"]]
+            elif "data" in obj.keys():
+                annotation_value = [obj['data']["location"]["start"], obj['data']["location"]["end"]]
+            elif "geojson" in obj.keys():
+                annotation_value = obj['geojson']['coordinates']
             else:
                 if mask_method == "url":
-                    annotation_value = [obj["instanceURI"], [255,255,255]]
+                    annotation_value = [obj['mask']["url"], [255,255,255]]
                 elif mask_method == "array": 
-                    array = mask_to_bytes(input=obj["instanceURI"], method="url", color=[255,255,255], output="array")
+                    array = mask_to_bytes(client=client, input=obj['mask']["url"], datarow_id=datarow_id, method="url", color=[255,255,255], output="array")
                     annotation_value = [array, [255,255,255]]
                 else:
-                    png = mask_to_bytes(input=obj["instanceURI"], method="url", color=[255,255,255], output="png")
+                    png = mask_to_bytes(client=client, input=obj['mask']["url"], datarow_id=datarow_id, method="url", color=[255,255,255], output="png")
                     annotation_value = [png, "null"]
             if "classifications" in obj.keys():
-                nested_classification_name_paths = get_leaf_paths(
-                    export_classifications=obj["classifications"], 
-                    schema_to_name_path=schema_to_name_path,
-                    divider=divider
-                )
-                return_paths = get_child_paths(first=obj["title"], name_paths=nested_classification_name_paths, divider=divider)
+                if len(obj['classifications']) > 0:
+                    return_paths = get_leaf_paths(
+                        classifications=obj["classifications"], 
+                        divider=divider
+                    )
+                    print(return_paths)
+                else:
+                    return_paths = []
             else:
                 return_paths = []
             flat_label[column_name].append([annotation_value, return_paths])
     if classifications:
         leaf_paths = get_leaf_paths(
-            export_classifications=classifications, 
-            schema_to_name_path=schema_to_name_path,
+            classifications=classifications, 
             divider=divider
         )
         classification_names = pull_first_name_from_paths(
@@ -331,54 +402,4 @@ def flatten_label(label_dict:dict, ontology_index:dict, schema_to_name_path:dict
             annotation_type = ontology_index[classification_name]["type"]
             child_paths = get_child_paths(first=classification_name, name_paths=leaf_paths, divider=divider)
             flat_label[f'{annotation_type}{divider}{classification_name}'] = [[name_path for name_path in child_paths]]
-    return flat_label 
-
-def get_leaf_paths(export_classifications:list, schema_to_name_path:dict, divider:str="///"):
-    """ Given a flat list of labelox export classifications, constructs leaf name paths given a divider
-    Args:
-        export_classifications  :   Required (list) - List of classifications from label["Label"]["objects"][0]["classifications"] or label["Label"]["classificaitons"]
-        schema_to_name_path     :   Required (dict) - Dictionary where {key=schema_id : value=feature_name_path} created from running:
-                                            labelbase.get_ontology_schema_to_name_path(ontology, divider=divider, invert=False, detailed=False)
-        divider                 :   Optional (str): String delimiter for name paths
-    Returns:
-        List of all leaf name paths 
-    """
-    def build_leaf_paths(root:dict, acc="", name_paths=[], divider="///"):
-        for parent in root.keys():
-            name_path = f"{acc}{divider}{parent}" if acc else f"{parent}"
-            child = root[parent]
-            if child:
-                name_paths = build_leaf_paths(root=root[parent], acc=name_path, name_paths=name_paths)
-            else:
-                name_paths.append(name_path)
-        return name_paths    
-    name_paths = []
-    for cla in export_classifications:
-        if type(cla) == dict:
-            if "answers" in cla.keys():
-                for answer in cla["answers"]:
-                    name_paths.append(schema_to_name_path[answer["schemaId"]])
-            if "answer" in cla.keys():
-                if type(cla["answer"]) == str:
-                    name_paths.append(schema_to_name_path[cla["schemaId"]]+divider+cla["answer"])
-                else:
-                    name_paths.append(schema_to_name_path[cla["answer"]["schemaId"]]) 
-        else:
-            for c in cla:
-                if "answers" in c.keys():
-                    for answer in c["answers"]:
-                        name_paths.append(schema_to_name_path[answer["schemaId"]])
-                if "answer" in c.keys():
-                    if type(c["answer"]) == str:
-                        name_paths.append(schema_to_name_path[c["schemaId"]]+divider+c["answer"])
-                    else:
-                        name_paths.append(schema_to_name_path[c["answer"]["schemaId"]])                 
-    root = {}
-    for input_path in name_paths:
-        parts = input_path.split(divider)
-        current_node = root
-        for part in parts:
-            if part not in current_node:
-                current_node[part] = {}
-            current_node = current_node[part]    
-    return build_leaf_paths(root)    
+    return flat_label

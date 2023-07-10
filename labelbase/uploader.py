@@ -270,7 +270,13 @@ def batch_upload_annotations(
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
         data_row_id = global_key_to_data_row_id[gk]
-        annotations = upload_dict[gk]["annotations"]
+        annotations_dict = upload_dict[gk]["annotations"]
+        annotations = []
+        for annotation in annotations_dict:
+            for key in annotation.keys():
+                print(type(annotation[key]))
+                print(annotation[key])
+                annotations.append(annotation[key])
         annotations_with_data_row_id = []
         for annotation in annotations:
             if "dataRow" in annotation.keys():
@@ -301,6 +307,7 @@ def batch_upload_annotations(
             if verbose:
                 print(f"Batch #{batch_number}: {len(upload)} annotations for {len(data_row_ids)} data rows")
             # Upload annotations
+            print(upload)
             import_request = upload_protocol.create_from_objects(client, project_id, f"{import_name}-{batch_number}", upload)
             errors = import_request.errors
             if errors:
@@ -311,6 +318,7 @@ def batch_upload_annotations(
             else:
                 if verbose:
                     print(f'Success: upload batch number {batch_number} complete')   
+
     return e
 
 def batch_add_data_rows_to_model_run(
@@ -406,7 +414,7 @@ def batch_add_ground_truth_to_model_run(
         # For each model_run, batch data rows in groups of batch_size
         for model_run_id in model_run_id_to_global_keys:
             model_run = client.get_model_run(model_run_id)
-            global_keys = model_run_to_global_keys[model_run_id]
+            global_keys = model_run_id_to_global_keys[model_run_id]
             label_ids = [global_key_to_label_id[gk] for gk in global_keys]
             for i in range(0, len(label_ids), batch_size):
                 batch_number += 1
@@ -469,7 +477,8 @@ def batch_upload_predictions(
             # Get all data rows IDs for this project
             global_keys = list(gk_to_preds.keys())
             if verbose:
-                print(f"Uploading predictions for {len(list(global_keys))} data rows to Model {model_run.model_id}  Run {model.name}")          
+                print(f"Uploading predictions for {len(list(global_keys))} data rows to Model {model_run.model_id}  Run {model_run.name}")    
+            batch_number = 0      
             for i in range(0, len(global_keys), batch_size):
                 global_keys = global_keys[i:] if i+batch_size >= len(global_keys) else global_keys[i:i+batch_size]
                 upload = []
@@ -480,7 +489,7 @@ def batch_upload_predictions(
                     print(f"Batch #{batch_number}: {len(upload)} annotations for {len(global_keys)} data rows")            
                 if verbose:
                     print(f"Batch #{batch_number}: {len(upload)} annotations for {len(global_keys)} data rows")
-                import_request = model_run.add_predictions(name=f"{import_name}-{batch_number}", predictions=upload)
+                import_request = model_run.add_predictions(name=f"{model_run.name}-{batch_number}", predictions=upload)
                 errors = import_request.errors
                 if errors:
                     if verbose:
