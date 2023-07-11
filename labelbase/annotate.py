@@ -383,7 +383,6 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
                         classifications=obj["classifications"], 
                         divider=divider
                     )
-                    print(return_paths)
                 else:
                     return_paths = []
             else:
