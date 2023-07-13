@@ -83,17 +83,17 @@ def export_and_flatten_labels(client:labelboxClient, project, include_metadata:b
                     flat_label["seconds_to_review"] = nested_label['performance_details']['seconds_to_review']
                     flat_label["seconds_to_label"] = nested_label['performance_details']['seconds_to_create'] - nested_label['performance_details']['seconds_to_review']
                     for metadata in label['metadata_fields']:
-                        print(metadata)
-                        metadata_type = metadata_schema_to_type[metadata['schema_id']]
-                        print(metadata_schema_to_name_key.keys())
-                        print(metadata_schema_to_name_key['clhb4bzr602du072a4erfdyiu'])
                         try:
                             if metadata['value'] in metadata_schema_to_name_key.keys():
                                 name_path = metadata_schema_to_name_key[metadata['value']].split(divider)
                                 field_name = name_path[0]
                                 metadata_value = name_path[1]
+                                metadata_type = metadata_schema_to_type[metadata['value']]
                             else:
                                 field_name = metadata['schema_name']
+                                for key in metadata_schema_to_name_key.keys():
+                                    if metadata_schema_to_name_key[key] == field_name:
+                                        metadata_type = metadata_schema_to_type[key]
                                 if type(metadata['value']) == list:
                                     values = []
                                     for value in metadata['value']:
@@ -103,6 +103,9 @@ def export_and_flatten_labels(client:labelboxClient, project, include_metadata:b
                                     metadata_value = metadata['value']
                         except:
                             field_name = metadata['schema_name']
+                            for key in metadata_schema_to_name_key.keys():
+                                if metadata_schema_to_name_key[key] == field_name:
+                                    metadata_type = metadata_schema_to_type[key]
                             if type(metadata['value']) == list:
                                 values = []
                                 for value in metadata['value']:

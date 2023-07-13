@@ -11,7 +11,11 @@ def get_mask_from_url(url, headers, max_retries=5, n=0):
         if n >= max_retries:
             return
         r = requests.get(url, headers=headers).content
-        return np.array(Image.open(BytesIO(r)))[:,:3]
+        if '/index/' in url:
+            mask = np.array(Image.open(BytesIO(r)))[:,:]
+        else:
+            mask = np.array(Image.open(BytesIO(r)))[:,:,:3]
+        return mask
     except:
         return get_mask_from_url(url, headers, max_retries, n=n+1)
 
@@ -54,14 +58,19 @@ def mask_to_bytes(client:labelboxClient, input:str, datarow_id:str, method:str="
     # Return either a numpy array or a png byte string
     if output == "array":
         return np_mask
+    
     else:
+        if '/index/' in input:
+            mask = lb_types.MaskData.from_2D_arr(arr=np_mask)
+        else:
+            mask = lb_types.MaskData(arr=np_mask)
         mask_label = lb_types.Label(
             data=lb_types.ImageData(uid=datarow_id),
             annotations=[
                 lb_types.ObjectAnnotation(
                     name="", 
                     value=lb_types.Mask(
-                        mask=lb_types.MaskData.from_2D_arr(arr=np_mask), 
+                        mask=mask,
                         color=np_color
                     )
                 )
