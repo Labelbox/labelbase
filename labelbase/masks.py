@@ -11,7 +11,7 @@ def get_mask_from_url(url, headers, max_retries=5, n=0):
         if n >= max_retries:
             return
         r = requests.get(url, headers=headers).content
-        return np.array(Image.open(BytesIO(r)))[:,:,:3]
+        return np.array(Image.open(BytesIO(r)))[:,:3]
     except:
         return get_mask_from_url(url, headers, max_retries, n=n+1)
 

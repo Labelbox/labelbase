@@ -2,7 +2,6 @@ from labelbox import Client as labelboxClient
 from labelbox import Dataset as labelboxDataset
 from labelbox import Project as labelboxProject
 import uuid
-import math
 
 def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, global_keys:list):
     """ Creates a dictionary where { key=global_key : value=label_id } by exporting labels from a project
@@ -171,7 +170,7 @@ def batch_create_data_rows(
 
 def batch_rows_to_project(
     client:labelboxClient, upload_dict:dict, priority:int=5, 
-    batch_name:str=str(uuid.uuid4()), batch_size:int=1000, verbose:bool=False):
+    batch_name:str=str(uuid.uuid4()), batch_size:int=10000, verbose:bool=False):
     """ Takes a large amount of data row IDs and creates subsets of batches to send to a project
     
     upload_dict must be in the following format:
@@ -270,13 +269,7 @@ def batch_upload_annotations(
     for gk in upload_dict:
         project_id = upload_dict[gk]["project_id"]
         data_row_id = global_key_to_data_row_id[gk]
-        annotations_dict = upload_dict[gk]["annotations"]
-        annotations = []
-        for annotation in annotations_dict:
-            for key in annotation.keys():
-                print(type(annotation[key]))
-                print(annotation[key])
-                annotations.append(annotation[key])
+        annotations = upload_dict[gk]["annotations"]
         annotations_with_data_row_id = []
         for annotation in annotations:
             if "dataRow" in annotation.keys():
@@ -307,7 +300,6 @@ def batch_upload_annotations(
             if verbose:
                 print(f"Batch #{batch_number}: {len(upload)} annotations for {len(data_row_ids)} data rows")
             # Upload annotations
-            print(upload)
             import_request = upload_protocol.create_from_objects(client, project_id, f"{import_name}-{batch_number}", upload)
             errors = import_request.errors
             if errors:
@@ -354,6 +346,7 @@ def batch_add_data_rows_to_model_run(
                 model_run_to_global_keys[model_run_id] = []
             model_run_to_global_keys[model_run_id].append(gk)
         # For each model_run, batch data rows in groups of batch_size
+        batch_number = 0
         for model_run_id in model_run_to_global_keys:
             model_run = client.get_model_run(model_run_id)
             global_keys = model_run_to_global_keys[model_run_id]

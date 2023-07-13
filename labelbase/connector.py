@@ -82,7 +82,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
             # Prediction columns --> prediction///annotation_type///top_level_class_name
             elif input_type.lower() == "prediction":
                 annotation_type, top_level_class_name = column_name.split(divider)[1:]
-                if column_type.lower() not in accepted_annotation_types:
+                if annotation_type.lower() not in accepted_annotation_types:
                     raise ValueError(f"Invalid value in prediction column name {column_name} - must be `prediction{divider}` followed by one of the following: |{accepted_annotation_types}| followed by `{divider}top_level_feature_name`")                    
                 x["prediction_index"][column_name] = top_level_class_name.lower()    
             else:
