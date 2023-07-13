@@ -61,7 +61,7 @@ def mask_to_bytes(client:labelboxClient, input:str, datarow_id:str, method:str="
                 lb_types.ObjectAnnotation(
                     name="", 
                     value=lb_types.Mask(
-                        mask=lb_types.MaskData(arr=np_mask), 
+                        mask=lb_types.MaskData.from_2D_arr(arr=np_mask), 
                         color=np_color
                     )
                 )
