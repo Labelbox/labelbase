@@ -87,6 +87,7 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
     Returns
         NDJSON representation of an annotation
     """
+    
     annotation_type = ontology_index[top_level_name]["type"]
     if ontology_index['project_type'] == str(lb.MediaType.Geospatial_Tile):
         annotation_type = 'geo_' + annotation_type
