@@ -37,7 +37,7 @@ def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:lis
         global_key_to_data_row_dict.update({gks[i] : res['results'][i] for i in range(0, len(gks))})
     return global_key_to_data_row_dict
 
-def check_global_keys(client:labelboxClient, global_keys:list, batch_size=20000):
+def check_global_keys(client:labelboxClient, global_keys:list, batch_size=1000):
     """ Checks if data rows exist for a set of global keys - if data rows exist, returns as dictionary { key=data_row_id : value=global_key }
     Args:
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
@@ -51,21 +51,14 @@ def check_global_keys(client:labelboxClient, global_keys:list, batch_size=20000)
     existing_drid_to_gk = {}
     # Enforce global keys as strings
     global_keys_list = [str(x) for x in global_keys]      
-    # Create a query job to get data row IDs given global keys
-    query_str_1 = """query get_datarow_with_global_key($global_keys:[ID!]!){dataRowsForGlobalKeys(where:{ids:$global_keys}){jobId}}"""
-    query_str_2 = """query get_job_result($job_id:ID!){dataRowsForGlobalKeysResult(jobId:{id:$job_id}){data{
-                    accessDeniedGlobalKeys\ndeletedDataRowGlobalKeys\nfetchedDataRows{id}\nnotFoundGlobalKeys}jobStatus}}"""      
     # Batch global key checks
     for i in range(0, len(global_keys_list), batch_size):
         batch_gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size]  
-        # Run the query job
-        res = None
-        while not res:
-            query_job_id = client.execute(query_str_1, {"global_keys":batch_gks})['dataRowsForGlobalKeys']['jobId']
-            res = client.execute(query_str_2, {"job_id":query_job_id})['dataRowsForGlobalKeysResult']['data']       
+        # Get the datarow ids
+        res = client.get_data_row_ids_for_global_keys(batch_gks)     
         # Check query job results for fetched data rows
-        for i in range(0, len(res["fetchedDataRows"])):
-            data_row_id = res["fetchedDataRows"][i]["id"]
+        for i in range(0, len(res["results"])):
+            data_row_id = res["results"][i]
             if data_row_id:
                 existing_drid_to_gk[data_row_id] = batch_gks[i]
     return existing_drid_to_gk
