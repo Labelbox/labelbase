@@ -140,7 +140,8 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
         else: # Only one left is named-entity 
             if ontology_index["project_type"] == str(lb.MediaType.Document):
                 ndjson["textSelections"] = [{"groupId": group[0], "tokenIds": group[1], "page": group[2]} for group in annotation_input[0]]
-            ndjson["data"]["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
+            else:
+                ndjson["data"]["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
             ndjson["classifications"] = []
             classification_names = pull_first_name_from_paths(name_paths=annotation_input[1], divider=divider)
