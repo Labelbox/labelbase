@@ -380,7 +380,7 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
             elif "geojson" in obj.keys():
                 annotation_value = obj['geojson']['coordinates']
             elif "location" in obj.keys():
-                annotation_value = [[group['id'], group['tokens'], group['page_number']] for group in obj["location"]["groups"]]
+                annotation_value = [[group['id'], group['tokens'], group['page_number'] + 1] for group in obj["location"]["groups"]]
             else:
                 if mask_method == "url":
                     annotation_value = [obj['mask']["url"], [255,255,255]]
