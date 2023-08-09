@@ -364,7 +364,9 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
             column_name = f'{annotation_type}{divider}{obj["name"]}'           
             if column_name not in flat_label.keys():
                 flat_label[column_name] = []
-            if "bounding_box" in obj.keys():
+            if "page_number" in obj.keys() and "bounding_box" in obj.keys():
+                annotation_value = [obj["bounding_box"]["top"], obj["bounding_box"]["left"], obj["bounding_box"]["height"], obj["bounding_box"]["width"], obj["page_number"]]
+            elif "bounding_box" in obj.keys():
                 annotation_value = [obj["bounding_box"]["top"], obj["bounding_box"]["left"], obj["bounding_box"]["height"], obj["bounding_box"]["width"]]
             elif "polygon" in obj.keys():
                 annotation_value = [[coord["x"], coord["y"]] for coord in obj["polygon"]]
@@ -376,8 +378,6 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
                 annotation_value = [obj['data']["location"]["start"], obj['data']["location"]["end"]]
             elif "geojson" in obj.keys():
                 annotation_value = obj['geojson']['coordinates']
-            elif "page_number" in obj.keys() and "bounding_box" in obj.keys():
-                annotation_value = [obj["bounding_box"]["top"], obj["bounding_box"]["left"], obj["bounding_box"]["height"], obj["bounding_box"]["width"], obj["page_number"]]
             elif "location" in obj.keys():
                 annotation_value = [[group['id'], group['tokens'], group['page_number']] for group in obj["location"]["groups"]]
             else:
