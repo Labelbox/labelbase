@@ -141,7 +141,7 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
             if ontology_index["project_type"] == str(lb.MediaType.Document):
                 ndjson["textSelections"] = [{"groupId": group[0], "tokenIds": group[1], "page": group[2]} for group in annotation_input[0]]
             else:
-                ndjson["data"]["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
+                ndjson["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
             ndjson["classifications"] = []
             classification_names = pull_first_name_from_paths(name_paths=annotation_input[1], divider=divider)
@@ -375,12 +375,13 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
                 annotation_value = [[coord["x"], coord["y"]] for coord in obj["line"]]
             elif "point" in obj.keys():
                 annotation_value = [obj["point"]["x"], obj["point"]["y"]]
-            elif "data" in obj.keys():
-                annotation_value = [obj['data']["location"]["start"], obj['data']["location"]["end"]]
             elif "geojson" in obj.keys():
                 annotation_value = obj['geojson']['coordinates']
             elif "location" in obj.keys():
-                annotation_value = [[group['id'], group['tokens'], group['page_number'] + 1] for group in obj["location"]["groups"]]
+                if "start" in obj["location"].keys():
+                    annotation_value = [obj["location"]["start"], obj["location"]["end"]]
+                else:
+                    annotation_value = [[group['id'], group['tokens'], group['page_number'] + 1] for group in obj["location"]["groups"]]
             else:
                 if mask_method == "url":
                     annotation_value = [obj['mask']["url"], [255,255,255]]
