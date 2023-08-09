@@ -101,11 +101,11 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
             ndjson["confidence"] = annotation_input[2] if len(annotation_input) == 3 else 0.0
         ndjson["name"] = top_level_name
         if annotation_type == "geo_bbox":
-                ndjson['bbox'] = {
-                    'top': annotation_input[0][0][1][1],
-                    'left': annotation_input[0][0][1][0],
-                    'height': annotation_input[0][0][3][1] - annotation_input[0][0][1][1],        
-                    'width': annotation_input[0][0][3][0] - annotation_input[0][0][1][0]
+                ndjson["bbox"] = {
+                    "top": annotation_input[0][0][1][1],
+                    "left": annotation_input[0][0][1][0],
+                    "height": annotation_input[0][0][3][1] - annotation_input[0][0][1][1],        
+                    "width": annotation_input[0][0][3][0] - annotation_input[0][0][1][0]
                 }
         elif annotation_type == "geo_polygon":
             polygon_points_ndjson = []
@@ -118,8 +118,12 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
                 line_points_ndjson.append({"x":sub[0], "y":sub[1]})
             ndjson["line"] = line_points_ndjson
         elif annotation_type == "geo_point":
-            ndjson["point"] = {'x':annotation_input[0][0], 'y':annotation_input[0][1]}
+            ndjson["point"] = {"x":annotation_input[0][0], "y":annotation_input[0][1]}
         elif annotation_type == "bbox":
+            if ontology_index["project_type"] == str(lb.MediaType.Document):
+                ndjson[annotation_type] = {"top":annotation_input[0][0],"left":annotation_input[0][1],"height":annotation_input[0][2],"width":annotation_input[0][3]}
+                ndjson["page"] = annotation_input[0][4]
+                ndjson["unit"] = "POINTS"
             ndjson[annotation_type] = {"top":annotation_input[0][0],"left":annotation_input[0][1],"height":annotation_input[0][2],"width":annotation_input[0][3]}
         elif annotation_type in ["polygon", "line"]:
             ndjson[annotation_type] = [{"x":xy_pair[0],"y":xy_pair[1]} for xy_pair in annotation_input[0]]     
@@ -134,7 +138,9 @@ def ndjson_builder(top_level_name:str, annotation_input:list, ontology_index:dic
             else: # Only one left is png
                 ndjson[annotation_type] = {"png":annotation_input[0][0]}
         else: # Only one left is named-entity 
-            ndjson['data']["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
+            if ontology_index["project_type"] == str(lb.MediaType.Document):
+                ndjson["textSelections"] = [{"groupId": group[0], "tokenIds": group[1], "page": group[2]} for group in annotation_input]
+            ndjson["data"]["location"] = {"start" : annotation_input[0][0],"end":annotation_input[0][1]}
         if annotation_input[1]:
             ndjson["classifications"] = []
             classification_names = pull_first_name_from_paths(name_paths=annotation_input[1], divider=divider)
@@ -281,7 +287,7 @@ def get_leaf_paths(classifications, current_path="", divider="///"):
     name_paths = []
     for classification in classifications:
         if current_path == "":
-            name_path = classification['name']
+            name_path = classification["name"]
         else:
             name_path = f"{current_path}{divider}{classification['name']}"
         if "text_answer" in classification.keys():
@@ -369,6 +375,10 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
                 annotation_value = [obj['data']["location"]["start"], obj['data']["location"]["end"]]
             elif "geojson" in obj.keys():
                 annotation_value = obj['geojson']['coordinates']
+            elif "page_number" in obj.keys() and "bounding_box" in obj.keys():
+                annotation_value = [obj["bounding_box"]["top"], obj["bounding_box"]["left"], obj["bounding_box"]["height"], obj["bounding_box"]["width"], obj["page_number"]]
+            elif "location" in obj.keys():
+                annotation_value = [[group['id'], group['tokens'], group['page_number']] for group in obj["location"]["groups"]]
             else:
                 if mask_method == "url":
                     annotation_value = [obj['mask']["url"], [255,255,255]]
