@@ -365,6 +365,7 @@ def flatten_label(client:labelboxClient, label_dict:dict, ontology_index:dict, d
             if column_name not in flat_label.keys():
                 flat_label[column_name] = []
             elif "bounding_box" in obj.keys():
+                print(obj)
                 annotation_value = [obj["bounding_box"]["top"], obj["bounding_box"]["left"], obj["bounding_box"]["height"], obj["bounding_box"]["width"]]
                 if "page_number" in obj.keys():
                     annotation_value.append(obj["page_number"])
