@@ -101,8 +101,6 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
         raise ValueError(f"Must provide either a 'global_key' column or a 'data_row_id' column")
     # global_key defaults to row_data        
     x["global_key_col"] = x["global_key_col"] if x["global_key_col"] else x["row_data_col"]
-    # external_id defaults to global_key     
-    x["external_id_col"] = x["external_id_col"] if x["external_id_col"] else x["global_key_col"]
     # Here, we sync the desired metadata to upload with the existing metadata index
     lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
     metadata_types = {
@@ -118,6 +116,39 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
                 if verbose:
                     print(f"Creating Labelbox metadata field with name {metadata_field_name} of type {metadata_string_type}")
                 lb_mdo.create_schema(name=metadata_field_name, kind=metadata_types[metadata_string_type], options=enum_options)
+    if "lb_integration_source" not in lb_metadata_names:
+        lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
+    return x
+
+#Currently only supporting "row_data", "global_key", "external_id", and "dataset_id" for data row creation.
+def get_columns_from_mapping(client:labelboxClient, table, column_mappings, get_columns_function, get_unique_values_function, 
+                     divider:str="///", verbose:bool=False, extra_client=None, creating_data_rows:bool=True):
+    cols = ["row_data", "global_key", "external_id", "dataset_id"]
+    x = {f"{c}_col" : "" for c in cols} # Default for cols is "" 
+    indexes = ["metadata_index", "attachment_index", "annotation_index", "prediction_index"]    
+    x.update({i : {} for i in indexes}) # Default for indexes is {}
+
+    # Get table column names
+    column_names = get_columns_function(table=table, extra_client=extra_client)
+    for column_name in column_mappings.keys():
+        if column_name not in column_names:
+            raise ValueError(f"Column name {column_name} was provided in column_mappings, but was not present in the table")
+        if column_mappings[column_name] in cols:
+            x[f"{column_mappings[column_name]}_col"] = column_name
+    
+    if creating_data_rows and not x["row_data_col"]: 
+        raise ValueError(f"No `row_data` column found - please provide a column of row data URls with the colunn name `row_data`")
+    # If we're attempting to do anything on Labelbox without a row_data_col or a global_key_col, we cannot fetch data rows
+    if not x["row_data_col"] and not x["global_key_col"]:
+        raise ValueError(f"Must provide either a 'global_key' column or a 'data_row_id' column")
+    # global_key defaults to row_data        
+    x["global_key_col"] = x["global_key_col"] if x["global_key_col"] else x["row_data_col"]
+    # Here, we sync the desired metadata to upload with the existing metadata index
+    lb_mdo, lb_metadata_names = _refresh_metadata_ontology(client)
+    metadata_types = {
+        "enum" : DataRowMetadataKind.enum, "string" : DataRowMetadataKind.string, 
+        "datetime" : DataRowMetadataKind.datetime, "number" : DataRowMetadataKind.number
+    }
     if "lb_integration_source" not in lb_metadata_names:
         lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
     return x
