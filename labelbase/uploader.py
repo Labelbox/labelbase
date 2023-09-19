@@ -32,9 +32,9 @@ def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:lis
     for i in range(0, len(global_keys), batch_size):
         gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size]  
         res = client.get_data_row_ids_for_global_keys(gks, timeout_seconds=timeout_seconds)
-        if res['errors']:
-            raise ValueError(f"{res}")
-        global_key_to_data_row_dict.update({gks[i] : res['results'][i] for i in range(0, len(gks))})
+        for i in range(0, len(gks)):
+            if res['results'][i] != '':
+                global_key_to_data_row_dict[gks[i]] = res['results'][i]
     return global_key_to_data_row_dict
 
 def check_global_keys(client:labelboxClient, global_keys:list, batch_size=1000):
