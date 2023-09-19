@@ -123,9 +123,9 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
 #Currently only supporting "row_data", "global_key", "external_id", and "dataset_id" for data row creation.
 def get_columns_from_mapping(client:labelboxClient, table, column_mappings, get_columns_function, get_unique_values_function, 
                      divider:str="///", verbose:bool=False, extra_client=None, creating_data_rows:bool=True):
-    cols = ["row_data", "global_key", "external_id", "dataset_id"]
+    cols = ["row_data", "global_key", "external_id", "dataset_id", "project_id", "model_id", "model_run_id"]
     x = {f"{c}_col" : "" for c in cols} # Default for cols is "" 
-    indexes = ["metadata_index", "attachment_index", "annotation_index", "prediction_index"]    
+    indexes = ["metadata_index", "attachment_index", "annotation_index", "prediction_index"] 
     x.update({i : {} for i in indexes}) # Default for indexes is {}
 
     # Get table column names
