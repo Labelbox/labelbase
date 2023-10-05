@@ -2,6 +2,7 @@ from labelbox import Client as labelboxClient
 from labelbox import Dataset as labelboxDataset
 from labelbox import Project as labelboxProject
 import uuid
+from time import time
 
 def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, global_keys:list):
     """ Creates a dictionary where { key=global_key : value=label_id } by exporting labels from a project
@@ -96,6 +97,7 @@ def batch_create_data_rows(
     # Default error message    
     e = "Success"
     # Vet all global keys
+    upload_start = time()
     global_keys = list(upload_dict.keys()) # Get all global keys
     if verbose:
         print(f"Vetting global keys")
@@ -125,7 +127,8 @@ def batch_create_data_rows(
                 gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Determine batch
                 existing_data_row_to_global_key = check_global_keys(client, gks) # Refresh existing_data_row_to_global_key
     if verbose:
-        print(f"Global keys vetted")    
+        print(f"Global keys vetted")   
+    print(f"Time to validate global keys: {time() - upload_start}") 
     # Dictionary where { key=dataset_id : value=list_of_uploads }
     dataset_id_to_upload_list = {}
     for gk in upload_dict:
@@ -146,8 +149,12 @@ def batch_create_data_rows(
             batch_number += 1
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
+            task_start = time()
             task = dataset.create_data_rows(batch)
+            print(f"Time to create task: {time() - task_start}")
+            wait_start = time()
             task.wait_till_done()
+            print(f"Time waiting for task to finish: {time()-wait_start}")
             errors = task.errors
             if errors:
                 if verbose: 
