@@ -94,7 +94,7 @@ def batch_create_data_rows(
         
     """
     # Default error message    
-    e = "Success"
+    e = {}
     # Vet all global keys
     global_keys = list(upload_dict.keys()) # Get all global keys
     if verbose:
@@ -103,11 +103,14 @@ def batch_create_data_rows(
         gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Batch of global keys to vet 
         existing_data_row_to_global_key = check_global_keys(client, gks) # Returns empty list if there are no duplicates
         loop_counter = 0
+        if skip_duplicates:
+            e['skipped_global_keys'] = []
         while existing_data_row_to_global_key:
             if skip_duplicates: # Drop in-use global keys if we're skipping duplicates
                 if verbose:
                     print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
                 for gk in existing_data_row_to_global_key.values():
+                    e['skipped_global_keys'].append(gk)
                     del upload_dict[gk]
                 break
             else: # Create new suffix for taken global keys if we're not skipping duplicates
@@ -135,6 +138,7 @@ def batch_create_data_rows(
             dataset_id_to_upload_list[dataset_id] = []
         dataset_id_to_upload_list[dataset_id].append(data_row)
     # Perform uploads grouped by dataset ID
+    e['upload_results'] = []
     for dataset_id in dataset_id_to_upload_list:
         dataset = client.get_dataset(dataset_id)       
         upload_list = dataset_id_to_upload_list[dataset_id]
@@ -149,10 +153,11 @@ def batch_create_data_rows(
             task = dataset.create_data_rows(batch)
             task.wait_till_done()
             errors = task.errors
+            e['upload_results'].append(task.result)
             if errors:
                 if verbose: 
                     print(f'Error: Upload batch number {batch_number} unsuccessful')
-                e = errors
+                e['errors'] = errors
                 break
             else:
                 if verbose: 
