@@ -120,7 +120,7 @@ def validate_columns(client:labelboxClient, table, get_columns_function, get_uni
         lb_mdo.create_schema(name="lb_integration_source", kind=metadata_types["string"])
     return x
 
-#Currently only supporting "row_data", "global_key", "external_id", and "dataset_id" for data row creation.
+#Currently only supporting "row_data", "global_key", "external_id", and "dataset_id" for data row creation. Using column mappings does not support metadata, attachments, or annotations
 def get_columns_from_mapping(client:labelboxClient, table, column_mappings, get_columns_function, get_unique_values_function, 
                      divider:str="///", verbose:bool=False, extra_client=None, creating_data_rows:bool=True):
     cols = ["row_data", "global_key", "external_id", "dataset_id", "project_id", "model_id", "model_run_id"]
