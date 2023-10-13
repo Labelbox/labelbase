@@ -3,6 +3,7 @@ from labelbox.schema.data_row_metadata import DataRowMetadataKind
 from datetime import datetime
 from dateutil import parser
 import pytz
+import pandas
 
 def get_metadata_schema_to_type(client:labelboxClient, lb_mdo=False, invert:bool=False):
     """ Creates a dictionary where {key=metadata_schema_id: value=metadata_type} 
@@ -120,6 +121,8 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
     if not metadata_value: # Catch empty values
         return_value = None
     if str(metadata_value) == "nan": # Catch NaN values
+        return_value = None
+    if pandas.isna(metadata_value): #Catch pandas df NaN values
         return_value = None
     # By metadata type
     if metadata_type == "enum": # For enums, it must be a schema ID - if we can't match it, we have to skip it
