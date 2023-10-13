@@ -151,6 +151,7 @@ def batch_create_data_rows(
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
             task = dataset.create_data_rows(batch)
+            print(task.uid)
             task.wait_till_done()
             errors = task.errors
             e['upload_results'].append(task.uid)
