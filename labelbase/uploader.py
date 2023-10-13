@@ -153,8 +153,7 @@ def batch_create_data_rows(
             task = dataset.create_data_rows(batch)
             task.wait_till_done()
             errors = task.errors
-            print(task.result_url)
-            e['upload_results'].append(task.result)
+            e['upload_results'].append(task.uid)
             if errors:
                 if verbose: 
                     print(f'Error: Upload batch number {batch_number} unsuccessful')
