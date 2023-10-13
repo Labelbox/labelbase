@@ -37,7 +37,7 @@ def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:lis
                 global_key_to_data_row_dict[gks[i]] = res['results'][i]
     return global_key_to_data_row_dict
 
-def check_global_keys(client:labelboxClient, global_keys:list, batch_size=1000):
+def check_global_keys(client:labelboxClient, global_keys:list):
     """ Checks if data rows exist for a set of global keys - if data rows exist, returns as dictionary { key=data_row_id : value=global_key }
     Args:
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
@@ -52,20 +52,18 @@ def check_global_keys(client:labelboxClient, global_keys:list, batch_size=1000):
     # Enforce global keys as strings
     global_keys_list = [str(x) for x in global_keys]      
     # Batch global key checks
-    for i in range(0, len(global_keys_list), batch_size):
-        batch_gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size]  
-        # Get the datarow ids
-        res = client.get_data_row_ids_for_global_keys(batch_gks)     
-        # Check query job results for fetched data rows
-        for i in range(0, len(res["results"])):
-            data_row_id = res["results"][i]
-            if data_row_id:
-                existing_drid_to_gk[data_row_id] = batch_gks[i]
+    # Get the datarow ids
+    res = client.get_data_row_ids_for_global_keys(global_keys_list)     
+    # Check query job results for fetched data rows
+    for i in range(0, len(res["results"])):
+        data_row_id = res["results"][i]
+        if data_row_id:
+            existing_drid_to_gk[data_row_id] = global_keys_list[i]
     return existing_drid_to_gk
 
 def batch_create_data_rows(
     client:labelboxClient, upload_dict:dict, skip_duplicates:bool=True, 
-    divider:str="___", batch_size:int=20000, verbose:bool=False):
+    divider:str="___", batch_size:int=100000, verbose:bool=False):
     """ Uploads data rows, skipping duplicate global keys or auto-generating new unique ones. 
     
     upload_dict must be in the following format:
