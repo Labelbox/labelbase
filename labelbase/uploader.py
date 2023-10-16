@@ -64,7 +64,7 @@ def check_global_keys(client:labelboxClient, global_keys:list):
 
 def batch_create_data_rows(
     client:labelboxClient, upload_dict:dict, skip_duplicates:bool=True, 
-    divider:str="___", batch_size:int=20000, verbose:bool=False):
+    divider:str="___", batch_size:int=100000, verbose:bool=False):
     """ Uploads data rows, skipping duplicate global keys or auto-generating new unique ones. 
     
     upload_dict must be in the following format:
@@ -503,5 +503,5 @@ def batch_upload_predictions(
     return e
 
 def get_results_from_task(task):
-    task.wait_till_done()
+    task.wait_till_done(120)
     return task.errors, task.result
