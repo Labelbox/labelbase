@@ -137,7 +137,6 @@ def batch_create_data_rows(
             dataset_id_to_upload_list[dataset_id] = []
         dataset_id_to_upload_list[dataset_id].append(data_row)
     # Perform uploads grouped by dataset ID
-    e['upload_results'] = []
     e['errors'] = []
     for dataset_id in dataset_id_to_upload_list:
         task_list = []
@@ -170,7 +169,6 @@ def batch_create_data_rows(
                 errors, results = future.result()
                 if errors:
                     e['errors'] += errors
-                e['upload_results'] += results
     if verbose:
         print(f'Upload complete - all data rows uploaded')
     return e, upload_dict
@@ -503,5 +501,5 @@ def batch_upload_predictions(
     return e
 
 def get_results_from_task(task):
-    task.wait_till_done(120)
-    return task.errors, task.result
+    task.wait_till_done()
+    return task.errors
