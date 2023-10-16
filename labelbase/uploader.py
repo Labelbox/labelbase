@@ -166,7 +166,7 @@ def batch_create_data_rows(
         with ThreadPoolExecutor() as exc:
             futures = [exc.submit(get_results_from_task, x) for x in task_list]
             for future in as_completed(futures):
-                errors, results = future.result()
+                errors = future.result()
                 if errors:
                     e['errors'] += errors
     if verbose:
