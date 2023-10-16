@@ -2,6 +2,7 @@ from labelbox import Client as labelboxClient
 from labelbox import Dataset as labelboxDataset
 from labelbox import Project as labelboxProject
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, global_keys:list):
     """ Creates a dictionary where { key=global_key : value=label_id } by exporting labels from a project
@@ -63,7 +64,7 @@ def check_global_keys(client:labelboxClient, global_keys:list):
 
 def batch_create_data_rows(
     client:labelboxClient, upload_dict:dict, skip_duplicates:bool=True, 
-    divider:str="___", batch_size:int=100000, verbose:bool=False):
+    divider:str="___", batch_size:int=20000, verbose:bool=False):
     """ Uploads data rows, skipping duplicate global keys or auto-generating new unique ones. 
     
     upload_dict must be in the following format:
@@ -137,7 +138,9 @@ def batch_create_data_rows(
         dataset_id_to_upload_list[dataset_id].append(data_row)
     # Perform uploads grouped by dataset ID
     e['upload_results'] = []
+    e['errors'] = []
     for dataset_id in dataset_id_to_upload_list:
+        task_list = []
         dataset = client.get_dataset(dataset_id)       
         upload_list = dataset_id_to_upload_list[dataset_id]
         if verbose:
@@ -149,18 +152,25 @@ def batch_create_data_rows(
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
             task = dataset.create_data_rows(batch)
-            print(task.uid)
-            task.wait_till_done()
-            errors = task.errors
-            e['upload_results'].append(task.uid)
-            if errors:
-                if verbose: 
-                    print(f'Error: Upload batch number {batch_number} unsuccessful')
-                e['errors'] = errors
-                break
-            else:
-                if verbose: 
-                    print(f'Success: Upload batch number {batch_number} successful')  
+            task_list.append(task)
+            # task.wait_till_done()
+            # errors = task.errors
+            # e['upload_results'].append(task.uid)
+            # if errors:
+            #     if verbose: 
+            #         print(f'Error: Upload batch number {batch_number} unsuccessful')
+            #     e['errors'] = errors
+            #     break
+            # else:
+            #     if verbose: 
+            #         print(f'Success: Upload batch number {batch_number} successful')  
+        with ThreadPoolExecutor() as exc:
+            futures = [exc.submit(get_results_from_task, x) for x in task_list]
+            for future in as_completed(futures):
+                errors, results = future.result()
+                if errors:
+                    e['errors'] += errors
+                e['upload_results'] += results
     if verbose:
         print(f'Upload complete - all data rows uploaded')
     return e, upload_dict
@@ -491,3 +501,7 @@ def batch_upload_predictions(
     except Exception as error:
         e = error
     return e
+
+def get_results_from_task(task):
+    task.wait_till_done()
+    return task.errors, task.result
