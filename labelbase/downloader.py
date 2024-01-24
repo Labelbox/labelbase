@@ -5,7 +5,7 @@ from labelbase.metadata import get_metadata_schema_to_name_key, get_metadata_sch
 from labelbase.annotate import flatten_label
 
 def export_and_flatten_labels(client:labelboxClient, project, include_metadata:bool=True, include_performance:bool=True, 
-    include_agreement:bool=False, verbose:bool=False, mask_method:str="png", divider="///", export_filters:dict=None):
+    include_agreement:bool=False, include_label_details:bool=False, verbose:bool=False, mask_method:str="png", divider="///", export_filters:dict=None):
     """ Exports and flattens labels from a Labelbox Project
     Args:
         client:                 :   Required (labelbox.Client) - Labelbox Client object
@@ -82,6 +82,7 @@ def export_and_flatten_labels(client:labelboxClient, project, include_metadata:b
                     flat_label["seconds_to_create"] = nested_label['performance_details']['seconds_to_create']
                     flat_label["seconds_to_review"] = nested_label['performance_details']['seconds_to_review']
                     flat_label["seconds_to_label"] = nested_label['performance_details']['seconds_to_create'] - nested_label['performance_details']['seconds_to_review']
+                if include_metadata:
                     for metadata in label['metadata_fields']:
                         try:
                             if metadata['value'] in metadata_schema_to_name_key.keys():
@@ -115,6 +116,10 @@ def export_and_flatten_labels(client:labelboxClient, project, include_metadata:b
                                 metadata_value = metadata['value']
                         if field_name != "lb_integration_source":
                             flat_label[f'metadata{divider}{metadata_type}{divider}{field_name}'] = metadata_value
+                if include_label_details:
+                    flat_label["created_by"] = nested_label['label_details']["created_by"]
+                    flat_label["updated_at"] = nested_label['label_details']["updated_at"]
+                    flat_label["created_at"] = nested_label['label_details']["created_at"]
                 flattened_labels.append(flat_label)
     if verbose:
         print(f"Labels flattened")            
