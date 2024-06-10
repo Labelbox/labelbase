@@ -1,4 +1,4 @@
-from labelbox import Project as labelboxProject
+from labelbox import Project as labelboxProject, StreamType, Client as labelboxClient
 from labelbase.ontology import get_ontology_schema_to_name_path
 import copy
 import datetime
@@ -23,9 +23,9 @@ def _to_coco_bbox_converter(data_row_id:str, annotation:dict, category_id:str):
     """
     coco_annotation = {
         "image_id": data_row_id,
-        "bbox": [annotation['bbox']['left'], annotation['bbox']['top'], annotation['bbox']['width'], annotation['bbox']['height']],
+        "bbox": [annotation['bounding_box']['left'], annotation['bounding_box']['top'], annotation['bounding_box']['width'], annotation['bounding_box']['height']],
         "category_id": category_id,
-        "id": annotation['featureId']
+        "id": annotation['feature_id']
     }
     return coco_annotation
 
@@ -51,7 +51,7 @@ def _to_coco_line_converter(data_row_id:str, annotation:dict, category_id:str):
         "keypoints": coco_line,
         "num_keypoints": num_line_keypoints,
         "category_id" : category_id,
-        "id": annotation['featureId']
+        "id": annotation['feature_id']
     }
     return coco_annotation, num_line_keypoints
 
@@ -69,7 +69,7 @@ def _to_coco_point_converter(data_row_id:str, annotation:dict, category_id:str):
         "keypoints": [annotation['point']['x'], annotation['point']['y'], 2],
         "num_keypoints": 1,
         "category_id" : category_id,
-        "id": annotation['featureId']
+        "id": annotation['feature_id']
     }
     return coco_annotation  
 
@@ -89,33 +89,37 @@ def _to_coco_polygon_converter(data_row_id:str, annotation:dict, category_id:str
         "segmentation" : [[item for sublist in poly_points for item in sublist]],
         "bbox" : [bounds[0], bounds[1], bounds[2]-bounds[0], bounds[3]-bounds[1]],
         "area" : Polygon(poly_points).area,
-        "id": annotation['featureId'],
+        "id": annotation['feature_id'],
         "iscrowd" : 0,
         "category_id" : category_id
     }  
     return coco_annotation
   
 @retry.Retry(predicate=retry.if_exception_type(Exception), deadline=120.)
-def download_mask(url:str):
+def download_mask(url:str, labelboxClient: labelboxClient):
     """Incorporates retry logic into the download of a mask / polygon Instance URI
     Args:
         annotation (dict)       :     A dictionary pertaining to a label exported from Labelbox
     Returns:
         A numPy array of said mask
     """ 
-    return requests.get(url).content 
+    return requests.get(url, headers=labelboxClient.headers).content
 
-def _to_coco_mask_converter(data_row_id:str, annotation:dict, category_id:str):
+def _to_coco_mask_converter(data_row_id:str, annotation:dict, category_id:str, client:labelboxClient):
     """Given a label dictionary and a mask annotation from said label, will return the coco-converted segmentation mask annotation dictionary
     Args:
         data_row_id (str)               :     Labelbox Data Row ID for this label
         annotation (dict)               :     Annotation dictionary from label['Label']['objects'], which comes from project.export_labels()
         category_id (str)               :     Desired category_id for the coco_annotation
+        client (str)                    :     labelbox Client object
     Returns:
         An annotation dictionary in the COCO format
     """  
-    mask_data = download_mask(annotation['instanceURI'])
-    binary_mask_arr = np.array(Image.open(BytesIO(mask_data)))[:,:,:1]
+    mask_data = download_mask(annotation["mask"]["url"], client)
+    binary_mask_arr = np.array(Image.open(BytesIO(mask_data)))
+    if binary_mask_arr.ndim == 3:
+        print("3DDDD")
+        binary_mask_arr = binary_mask_arr[:,:,:1]
     contours = cv2.findContours(binary_mask_arr, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[0]
     coords = contours[0]
     poly_points = np.array([[coords[i][0][0], coords[i][0][1]] for i in range(0, len(coords))])
@@ -125,13 +129,13 @@ def _to_coco_mask_converter(data_row_id:str, annotation:dict, category_id:str):
         "segmentation" : [[item for sublist in poly_points for item in sublist]],
         "bbox" : [bounds[0], bounds[1], bounds[2]-bounds[0], bounds[3]-bounds[1]],
         "area" : Polygon(poly_points).area,
-        "id": annotation['featureId'],
+        "id": annotation['feature_id'],
         "iscrowd" : 0,
         "category_id" : category_id
     }  
     return coco_annotation
 
-def _to_coco_annotation_converter(data_row_id:str, annotation:dict, ontology_schema_to_name_path:dict):
+def _to_coco_annotation_converter(data_row_id:str, annotation:dict, ontology_schema_to_name_path:dict, client:labelboxClient):
     """ Wrapper to triage and multithread the coco annotation conversion - if nested classes exist, the category_id will be the first radio/checklist classification answer available
     Args:
         data_row_id (str)                   :     Labelbox Data Row ID for this label
@@ -141,18 +145,18 @@ def _to_coco_annotation_converter(data_row_id:str, annotation:dict, ontology_sch
         A dictionary corresponding to te coco annotation syntax - the category ID used will be the top-level tool 
     """
     max_line_keypoints = 0
-    category_id = ontology_schema_to_name_path[annotation['schemaId']]['encoded_value']
+    category_id = ontology_schema_to_name_path[annotation['feature_schema_id']]['encoded_value']
     if "classifications" in annotation.keys():
         if annotation['classifications']:
             for classification in annotation['classifications']:
-                if 'answer' in classification.keys():
-                    if type(classification['answer']) == dict:
-                        category_id = ontology_schema_to_name_path[classification['schemaId']]['encoded_value']
+                if 'radio_answer' in classification.keys():
+                    if type(classification['radio_answer']) == dict:
+                        category_id = ontology_schema_to_name_path[classification['radio_answer']['feature_schema_id']]['encoded_value']
                         break
-                else:
-                    category_id = ontology_schema_to_name_path[classification['answers'][0]['schemaId']]['encoded_value']
+                elif 'checklist_answers' in classification.keys():
+                    category_id = ontology_schema_to_name_path[classification['checklist_answers'][0]['feature_schema_id']]['encoded_value']
                     break
-    if "bbox" in annotation.keys():
+    if "bounding_box" in annotation.keys():
         coco_annotation = _to_coco_bbox_converter(data_row_id, annotation, category_id)
     elif "line" in annotation.keys():
         coco_annotation, max_line_keypoints = _to_coco_line_converter(data_row_id, annotation, category_id)
@@ -161,23 +165,26 @@ def _to_coco_annotation_converter(data_row_id:str, annotation:dict, ontology_sch
     elif "polygon" in annotation.keys():
         coco_annotation = _to_coco_polygon_converter(data_row_id, annotation, category_id)
     else: 
-        coco_annotation = _to_coco_mask_converter(data_row_id, annotation, category_id)     
+        coco_annotation = _to_coco_mask_converter(data_row_id, annotation, category_id, client)     
     return coco_annotation, max_line_keypoints
 
-def export_labels(project:labelboxProject, verbose:bool=True, divider:str="///"):
+def export_labels(project:labelboxProject, labelboxClient: labelboxClient, verbose:bool=True, divider:str="///"):
     """ Given a project and a list of labels, will create the COCO export json
     Args:
-        project     :   Required (labelbox.schema.project.Project) - Labelbox Project object
-        verbose     :   Optional (bool) - If True, prints information about code execution
-        divider     :   Optional (str) - String delineating the tool/classification/answer path for a given schema ID
+        project:   Required (labelbox.schema.project.Project) - Labelbox Project object
+        labelboxClient:   Required (labelbox.Client) - Labelbox Client object
+        verbose:   Optional (bool) - If True, prints information about code execution
+        divider:   Optional (str) - String delineating the tool/classification/answer path for a given schema ID
     Returns:
         Dicationary with 'info', 'licenses', 'images', 'annotations', and 'annotations' keys corresponding to a COCO dataset format
     """
     if verbose:
         print(f'Exporting labels from project ID {project.uid}')
-    labels_list = project.export_labels(download=True)
+    exported_datarows_task = project.export_v2(params={"data_row_details": True})
+    exported_datarows_task.wait_till_done()
+    exported_datarows = exported_datarows_task.result
     if verbose:
-        print(f'Export complete - {len(labels_list)} labels to convert')    
+        print(f'Export complete - {exported_datarows_task.get_total_lines(stream_type=StreamType.RESULT)} datarows to convert')
     info = {
         'description' : project.name, 'url' : f'https://app.labelbox.com/projects/{project.uid}/overview', 'version' : "1.0", 
         'year' : datetime.datetime.now().year, 'contributor' : project.created_by().email, 'date_created' : datetime.datetime.now().strftime('%Y/%m/%d'),
@@ -187,67 +194,81 @@ def export_labels(project:labelboxProject, verbose:bool=True, divider:str="///")
     data_rows = {}
     if verbose:
         print(f'Exporting Data Rows from Project...')
-    if project.datasets():
-        for dataset in project.datasets():
-            for data_row in dataset.export_data_rows():
-                data_rows.update({data_row.uid : data_row})  
-    else:
-        for batch in project.batches():
-            for data_row in batch.export_data_rows():
-                data_rows.update({data_row.uid : data_row})  
+    for item in exported_datarows:
+        data_rows.update({
+                item["data_row"]["id"]: {
+                    "global_key": item["data_row"]["global_key"],
+                    "height": item["media_attributes"]["height"],
+                    "width": item["media_attributes"]["width"],
+                    "created_at": item["data_row"]["details"]["created_at"],
+                    "row_data": item["data_row"]["row_data"],
+                }
+            })
     if verbose:                        
         print(f'Export complete. {len(data_rows)} Data Rows Exported')
         print(f'Converting Data Rows into a COCO Dataset...')
     images = []
-    data_row_check = [] # This is a check for projects where one data row has multiple labels (consensus, benchmark)
+    data_row_check = set() # This is a check for projects where one data row has multiple labels (consensus, benchmark)
     if verbose:
-        for label in tqdm(labels_list):
-            data_row = data_rows[label['DataRow ID']]
-            if label['DataRow ID'] not in data_row_check:
-                data_row_check.append(label['DataRow ID'])
-                images.append({
-                    "license" : 1, "file_name" : data_row.external_id, "height" : data_row.media_attributes['height'],
-                    "width" : data_row.media_attributes['width'], "date_captured" : data_row.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                    "id" : data_row.uid, "coco_url": data_row.row_data
-                })
+        for item in tqdm(exported_datarows):
+            datarow_id = item["data_row"]["id"]
+            labels = item["projects"][project.uid]["labels"]
+            for label in labels:
+                data_row = data_rows[datarow_id]
+                if datarow_id not in data_row_check:
+                    data_row_check.add(datarow_id)
+                    images.append({
+                        "license" : 1, "file_name" : data_row["global_key"], "height" : data_row["height"],
+                        "width" : data_row["width"], "date_captured" : data_row["created_at"],
+                        "id" : datarow_id, "coco_url": data_row["row_data"]
+                    })
     else:
-        for label in labels_list:
-            data_row = data_rows[label['DataRow ID']]
-            if label['DataRow ID'] not in data_row_check:
-                data_row_check.append(label['DataRow ID'])
-                images.append({
-                    "license" : 1, "file_name" : data_row.external_id, "height" : data_row.media_attributes['height'],
-                    "width" : data_row.media_attributes['width'], "date_captured" : data_row.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                    "id" : data_row.uid, "coco_url": data_row.row_data
-                })  
+        for item in exported_datarows:
+            datarow_id = item["data_row"]["id"]
+            labels = item["projects"][project.uid]["labels"]
+            for label in labels:
+                data_row = data_rows[datarow_id]
+                if datarow_id not in data_row_check:
+                    data_row_check.add(datarow_id)
+                    images.append({
+                        "license" : 1, "file_name" : data_row["global_key"], "height" : data_row["height"],
+                        "width" : data_row["width"], "date_captured" : data_row["created_at"],
+                        "id" : datarow_id, "coco_url": data_row["row_data"]
+                    })
     if verbose:                     
         print(f'Data Rows Converted into a COCO Dataset.')  
-    annotations = []
-    if verbose:                     
         print(f'Converting Annotations into the COCO Format...')
+
+    annotations = []
     ontology_schema_to_name_path = get_ontology_schema_to_name_path(project.ontology().normalized, detailed=True) 
     global_max_keypoints = 0
     futures = []
     if verbose:
         with ThreadPoolExecutor() as exc:
-            for label in tqdm(labels_list):
-                for annotation in label['Label']['objects']:
-                    futures.append(exc.submit(_to_coco_annotation_converter, label['DataRow ID'], annotation, ontology_schema_to_name_path))
-            for f in tqdm(as_completed(futures)):
-                res = f.result()
-                if res[1] > global_max_keypoints:
-                    global_max_keypoints = copy.deepcopy(res[1])
-                annotations.append(res[0])    
+            for item in exported_datarows:
+                datarow_id = item["data_row"]["id"]
+                labels = item["projects"][project.uid]["labels"]
+                for label in tqdm(labels):
+                    for annotation in label['annotations']['objects']:
+                        futures.append(exc.submit(_to_coco_annotation_converter, datarow_id, annotation, ontology_schema_to_name_path, labelboxClient))
+                for f in tqdm(as_completed(futures)):
+                    res = f.result()
+                    if res[1] > global_max_keypoints:
+                        global_max_keypoints = copy.deepcopy(res[1])
+                    annotations.append(res[0])    
     else:
         with ThreadPoolExecutor() as exc:
-            for label in labels_list:
-                for annotation in label['Label']['objects']:
-                    futures.append(exc.submit(_to_coco_annotation_converter, label['DataRow ID'], annotation, ontology_schema_to_name_path))
-            for f in as_completed(futures):
-                res = f.result()
-                if res[1] > global_max_keypoints:
-                    global_max_keypoints = copy.deepcopy(res[1])
-                annotations.append(res[0])          
+            for item in exported_datarows:
+                datarow_id = item["data_row"]["id"]
+                labels = item["projects"][project.uid]["labels"]
+                for label in labels:
+                    for annotation in label['annotations']['objects']:
+                        futures.append(exc.submit(_to_coco_annotation_converter, datarow_id, annotation, ontology_schema_to_name_path, labelboxClient))
+                for f in as_completed(futures):
+                    res = f.result()
+                    if res[1] > global_max_keypoints:
+                        global_max_keypoints = copy.deepcopy(res[1])
+                    annotations.append(res[0])       
     if verbose:                     
         print(f'Annotation Conversion Complete. Converted {len(annotations)} annotations into the COCO Format.')                        
         print(f'Converting the Ontology into the COCO Dataset Format...') 
@@ -285,7 +306,6 @@ def export_labels(project:labelboxProject, verbose:bool=True, divider:str="///")
                 "name" : ontology_schema_to_name_path[featureSchemaId]['name']
             })
     if verbose:            
-        print(f'Ontology Conversion Complete')       
-    if verbose:            
-        print(f'COCO Conversion Complete')    
+        print(f'Ontology Conversion Complete')
+        print(f'COCO Conversion Complete')   
     return {"info" : info, "licenses" : licenses, "images" : images, "annotations" : annotations, "categories" : categories}      
