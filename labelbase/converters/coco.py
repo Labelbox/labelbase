@@ -118,7 +118,6 @@ def _to_coco_mask_converter(data_row_id:str, annotation:dict, category_id:str, c
     mask_data = download_mask(annotation["mask"]["url"], client)
     binary_mask_arr = np.array(Image.open(BytesIO(mask_data)))
     if binary_mask_arr.ndim == 3:
-        print("3DDDD")
         binary_mask_arr = binary_mask_arr[:,:,:1]
     contours = cv2.findContours(binary_mask_arr, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[0]
     coords = contours[0]
@@ -309,3 +308,11 @@ def export_labels(project:labelboxProject, labelboxClient: labelboxClient, verbo
         print(f'Ontology Conversion Complete')
         print(f'COCO Conversion Complete')   
     return {"info" : info, "licenses" : licenses, "images" : images, "annotations" : annotations, "categories" : categories}      
+
+from labelbox import Client
+
+cl = Client("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbHV2dHdveG8wMDBkMDc3dGdvbmQ2cjM3Iiwib3JnYW5pemF0aW9uSWQiOiJjbDEyZWFxdDM2eWkyMHo0aDlkcXI2cWJqIiwiYXBpS2V5SWQiOiJjbHYyeTVjdG4wMG5hMDd4NmZwYmY4enY0Iiwic2VjcmV0IjoiZDkxMTU1ZjE1YjVlODkwM2ZhNjRhYTFjZDVjY2I2NWEiLCJpYXQiOjE3MTMzMDU5ODcsImV4cCI6MjM0NDQ1Nzk4N30.mBFpOFVZbEXzhlDEs8OIFO17rJE3ndgrCpFsQ5tWgRE")
+
+project = cl.get_project(project_id="clwtwfhc1038j07xt683bbk0p")
+cl
+print(export_labels(project=project, labelboxClient=cl, verbose=False))
