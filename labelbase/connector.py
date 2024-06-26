@@ -187,6 +187,8 @@ def determine_actions(
     attachments_action = True if attachment_index and not create_action else False    
     # Determine if we're batching data rows
     batch_action = False if (project_id == project_id_col == "") else True
+    print(project_id)
+    print(project_id_col)
     # Determine the upload_method if we're batching to projects
     annotate_action = upload_method if (upload_method in ["mal", "import", "ground-truth"]) and annotation_index and batch_action else ""      
     # "ground-truth" defaults to "import" if no model informtion is given

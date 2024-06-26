@@ -2,6 +2,7 @@ from labelbox import Client as labelboxClient
 from labelbox import Dataset as labelboxDataset
 from labelbox import Project as labelboxProject
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def create_global_key_to_label_id_dict(client:labelboxClient, project_id:str, global_keys:list):
     """ Creates a dictionary where { key=global_key : value=label_id } by exporting labels from a project
@@ -37,7 +38,7 @@ def create_global_key_to_data_row_id_dict(client:labelboxClient, global_keys:lis
                 global_key_to_data_row_dict[gks[i]] = res['results'][i]
     return global_key_to_data_row_dict
 
-def check_global_keys(client:labelboxClient, global_keys:list, batch_size=1000):
+def check_global_keys(client:labelboxClient, global_keys:list):
     """ Checks if data rows exist for a set of global keys - if data rows exist, returns as dictionary { key=data_row_id : value=global_key }
     Args:
         client                  :   Required (labelbox.client.Client) - Labelbox Client object    
@@ -52,20 +53,18 @@ def check_global_keys(client:labelboxClient, global_keys:list, batch_size=1000):
     # Enforce global keys as strings
     global_keys_list = [str(x) for x in global_keys]      
     # Batch global key checks
-    for i in range(0, len(global_keys_list), batch_size):
-        batch_gks = global_keys_list[i:] if i + batch_size >= len(global_keys_list) else global_keys_list[i:i+batch_size]  
-        # Get the datarow ids
-        res = client.get_data_row_ids_for_global_keys(batch_gks)     
-        # Check query job results for fetched data rows
-        for i in range(0, len(res["results"])):
-            data_row_id = res["results"][i]
-            if data_row_id:
-                existing_drid_to_gk[data_row_id] = batch_gks[i]
+    # Get the datarow ids
+    res = client.get_data_row_ids_for_global_keys(global_keys_list)     
+    # Check query job results for fetched data rows
+    for i in range(0, len(res["results"])):
+        data_row_id = res["results"][i]
+        if data_row_id:
+            existing_drid_to_gk[data_row_id] = global_keys_list[i]
     return existing_drid_to_gk
 
 def batch_create_data_rows(
     client:labelboxClient, upload_dict:dict, skip_duplicates:bool=True, 
-    divider:str="___", batch_size:int=20000, verbose:bool=False):
+    divider:str="___", batch_size:int=100000, verbose:bool=False):
     """ Uploads data rows, skipping duplicate global keys or auto-generating new unique ones. 
     
     upload_dict must be in the following format:
@@ -94,7 +93,7 @@ def batch_create_data_rows(
         
     """
     # Default error message    
-    e = "Success"
+    e = {}
     # Vet all global keys
     global_keys = list(upload_dict.keys()) # Get all global keys
     if verbose:
@@ -103,11 +102,14 @@ def batch_create_data_rows(
         gks = global_keys[i:] if i + batch_size >= len(global_keys) else global_keys[i:i+batch_size] # Batch of global keys to vet 
         existing_data_row_to_global_key = check_global_keys(client, gks) # Returns empty list if there are no duplicates
         loop_counter = 0
+        if skip_duplicates:
+            e['skipped_global_keys'] = []
         while existing_data_row_to_global_key:
             if skip_duplicates: # Drop in-use global keys if we're skipping duplicates
                 if verbose:
                     print(f"Warning: Global keys in this upload are in use by active data rows, skipping the upload of data rows affected") 
                 for gk in existing_data_row_to_global_key.values():
+                    e['skipped_global_keys'].append(gk)
                     del upload_dict[gk]
                 break
             else: # Create new suffix for taken global keys if we're not skipping duplicates
@@ -135,7 +137,9 @@ def batch_create_data_rows(
             dataset_id_to_upload_list[dataset_id] = []
         dataset_id_to_upload_list[dataset_id].append(data_row)
     # Perform uploads grouped by dataset ID
+    e['errors'] = []
     for dataset_id in dataset_id_to_upload_list:
+        task_list = []
         dataset = client.get_dataset(dataset_id)       
         upload_list = dataset_id_to_upload_list[dataset_id]
         if verbose:
@@ -147,16 +151,24 @@ def batch_create_data_rows(
             if verbose:
                 print(f'Batch #{batch_number}: {len(batch)} data rows')
             task = dataset.create_data_rows(batch)
-            task.wait_till_done()
-            errors = task.errors
-            if errors:
-                if verbose: 
-                    print(f'Error: Upload batch number {batch_number} unsuccessful')
-                e = errors
-                break
-            else:
-                if verbose: 
-                    print(f'Success: Upload batch number {batch_number} successful')  
+            task_list.append(task)
+            # task.wait_till_done()
+            # errors = task.errors
+            # e['upload_results'].append(task.uid)
+            # if errors:
+            #     if verbose: 
+            #         print(f'Error: Upload batch number {batch_number} unsuccessful')
+            #     e['errors'] = errors
+            #     break
+            # else:
+            #     if verbose: 
+            #         print(f'Success: Upload batch number {batch_number} successful')  
+        with ThreadPoolExecutor() as exc:
+            futures = [exc.submit(get_results_from_task, x) for x in task_list]
+            for future in as_completed(futures):
+                errors = future.result()
+                if errors:
+                    e['errors'] += errors
     if verbose:
         print(f'Upload complete - all data rows uploaded')
     return e, upload_dict
@@ -487,3 +499,7 @@ def batch_upload_predictions(
     except Exception as error:
         e = error
     return e
+
+def get_results_from_task(task):
+    task.wait_till_done()
+    return task.errors
