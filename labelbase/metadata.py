@@ -131,9 +131,9 @@ def process_metadata_value(metadata_value, metadata_type:str, parent_name:str, m
             return_value = str(metadata_name_key_to_schema[name_key])
         else:
             return_value = None                  
-    elif metadata_type == "number": # For numbers, it's ints as strings
+    elif metadata_type == "number": # For numbers, it's floats as strings
         try:
-            return_value = str(int(metadata_value))
+            return_value = str(float(metadata_value))
         except:
             return_value = None                  
     elif metadata_type == "string": 
